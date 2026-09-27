@@ -221,30 +221,44 @@ def build_reader_agent():
 writer_prompt = ChatPromptTemplate.from_messages([
     (
         "system",
-        """You are an elite research writer and empirical analyst.
+        """You are an elite research writer producing publication-grade analytical reports.
 
-Your objective: Synthesize verified research into a factual, citation-grounded report.
+OBJECTIVE: Synthesize the provided evidence into a comprehensive, deeply analytical research document.
 
-CRITICAL CITATION RULES:
-1. Every important factual claim MUST cite valid sources from the provided Evidence Catalog.
-2. DO NOT invent citations or URLs. You may ONLY cite source_ids or [Source N] numbers present in the Evidence Catalog.
-3. Multiple sources can support a single claim if relevant.
-4. Output your analysis in clean JSON format adhering strictly to this schema:
+WRITING REQUIREMENTS:
+1. The "summary" MUST be a rich 3-5 sentence executive overview establishing context, significance, and scope of the research topic.
+2. Each claim "text" MUST be a detailed 3-6 sentence analytical paragraph that:
+   - States the core finding clearly
+   - Provides quantitative data, dates, or specifics from the evidence
+   - Explains WHY this finding matters in the broader research context
+   - Connects to other findings or implications where relevant
+3. The "conclusion" MUST be a substantive 3-5 sentence strategic synthesis with forward-looking insights and implications.
+4. Write in clear, professional analytical prose. Never copy raw evidence text verbatim — always synthesize and explain.
+5. If the evidence contains corrupted, unreadable, or binary text, SKIP it entirely and write only from readable evidence.
+6. Produce at least 6-10 detailed claims when sufficient evidence is available.
+
+CITATION RULES:
+- Cite sources using [Source N] notation matching the Evidence Catalog source numbers.
+- Every factual claim must cite at least one source.
+- Do NOT invent citations. Only use source_ids or [Source N] numbers from the Evidence Catalog.
+- Multiple sources can support a single claim if relevant.
+
+OUTPUT FORMAT — Clean JSON only:
 {{
-  "summary": "Concise executive introduction summarizing the context and core topic...",
+  "summary": "Rich executive introduction (3-5 sentences establishing context and significance)...",
   "claims": [
     {{
       "claim_id": "claim_1",
-      "text": "Specific factual claim derived directly from the evidence text...",
+      "text": "Detailed analytical paragraph (3-6 sentences) explaining the finding, its data, and its significance...",
       "supporting_source_ids": ["source_id_or_number"],
       "evidence_chunk_ids": ["chunk_id"],
       "confidence": 0.95
     }}
   ],
-  "conclusion": "Strategic synthesis and forward-looking outlook..."
+  "conclusion": "Strategic synthesis with implications and forward-looking outlook (3-5 sentences)..."
 }}
 
-Output ONLY the JSON block. Do not include commentary outside the JSON.
+Output ONLY the JSON block. No commentary outside the JSON.
 """
     ),
     (

@@ -511,6 +511,38 @@ def format_claim_citation_tags(claim: Claim, sources: Dict[str, Source]) -> str:
     return f"[{', '.join(f'Source {n}' for n in sorted_nums)}]"
 
 
+def _sanitize_report_text(text: str, fallback_topic: str) -> str:
+    """Strip JSON artifacts, binary garbage, and ensure clean prose output for report sections."""
+    if not text or not text.strip():
+        return f"This report synthesizes verified empirical research on {fallback_topic}."
+
+    cleaned = text.strip()
+
+    # If the entire summary is a JSON object, extract the summary value
+    if cleaned.startswith("{") and cleaned.endswith("}"):
+        try:
+            data = json.loads(cleaned)
+            if isinstance(data, dict):
+                cleaned = data.get("summary", "") or data.get("introduction", "") or ""
+        except Exception:
+            pass
+
+    # Strip any remaining JSON syntax fragments
+    cleaned = re.sub(r'^\s*\{.*?"summary"\s*:\s*"?', '', cleaned)
+    cleaned = re.sub(r'"?\s*,\s*"claims"\s*:.*$', '', cleaned, flags=re.DOTALL)
+    cleaned = re.sub(r'^\s*"', '', cleaned)
+    cleaned = re.sub(r'"\s*$', '', cleaned)
+
+    # Remove non-printable characters (binary corruption)
+    cleaned = ''.join(ch for ch in cleaned if ch.isprintable() or ch in '\n\r\t ')
+    cleaned = re.sub(r'\s+', ' ', cleaned).strip()
+
+    if len(cleaned) < 20:
+        return f"This report synthesizes verified empirical research on {fallback_topic}."
+
+    return cleaned
+
+
 def assemble_grounded_report(
     topic: str,
     summary: str,
@@ -540,11 +572,20 @@ def assemble_grounded_report(
     report_sections = [
         f"# Research Report: {topic}\n",
         "## Introduction",
-        summary.strip() if summary else f"This report synthesizes verified empirical research on {topic}.",
+        _sanitize_report_text(summary, topic),
         "\n## Key Findings\n",
     ]
 
-    for i, c in enumerate(claims, 1):
+    finding_num = 1
+    for c in claims:
+        # Skip claims with binary/corrupted text
+        claim_text = c.text.strip()
+        if len(claim_text) < 20:
+            continue
+        printable_ratio = sum(1 for ch in claim_text if ch.isprintable()) / max(1, len(claim_text))
+        if printable_ratio < 0.85:
+            continue
+
         cit_tag = format_claim_citation_tags(c, sources)
         cit_suffix = f" {cit_tag}" if cit_tag else ""
 
@@ -555,13 +596,13 @@ def assemble_grounded_report(
         elif c.verification_status == "unsupported":
             status_note = " *(Note: Unsubstantiated by evidence store)*"
 
-        report_sections.append(f"{i}. **{c.text.strip()}**{cit_suffix}{status_note}\n")
+        report_sections.append(f"{finding_num}. **{claim_text}**{cit_suffix}{status_note}\n")
+        finding_num += 1
 
     # Conclusion
     report_sections.append("## Conclusion")
     report_sections.append(
-        conclusion.strip()
-        if conclusion
+        _sanitize_report_text(conclusion, topic) if conclusion
         else f"Strategic decision-making regarding {topic} requires ongoing empirical observation."
     )
     report_sections.append("")
@@ -860,7 +901,14 @@ def synthesize_deterministic_grounded_claims(
 
     idx = 1
     for chunk in sorted_chunks[:6]:
-        sentences = [s.strip() for s in re.split(r"[.\n]", chunk.text) if len(s.strip()) > 35]
+        # Validate chunk text is readable before extraction
+        if not chunk.text or sum(1 for ch in chunk.text[:200] if ch.isprintable()) / max(1, len(chunk.text[:200])) < 0.85:
+            continue
+        sentences = [
+            s.strip() for s in re.split(r"[.\n]", chunk.text)
+            if len(s.strip()) > 35
+            and sum(1 for ch in s if ch.isprintable()) / max(1, len(s)) > 0.90
+        ]
         if sentences:
             chosen_sentence = sentences[0]
             if not chosen_sentence.endswith("."):

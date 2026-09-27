@@ -5,6 +5,28 @@ import NewsResources from './NewsResources';
 import AgentTelemetryView from './AgentTelemetryView';
 import EvidencePanel from './EvidencePanel';
 
+/**
+ * Client-side defense-in-depth: strip JSON artifacts and binary garbage
+ * from report markdown before rendering.
+ */
+function sanitizeReportMarkdown(raw) {
+  if (!raw) return '';
+  let text = raw;
+
+  // Strip raw JSON blocks that leaked into report text
+  text = text.replace(/^\s*\{[\s\S]*?"summary"\s*:/m, '');
+  text = text.replace(/"claims"\s*:\s*\[[\s\S]*?\]\s*\}/m, '');
+
+  // Remove lines with >50% non-printable characters (binary corruption)
+  text = text.split('\n').filter(line => {
+    if (line.trim().length === 0) return true;
+    const printable = [...line].filter(ch => ch.charCodeAt(0) >= 32 || ch === '\n' || ch === '\t').length;
+    return printable / line.length > 0.8;
+  }).join('\n');
+
+  return text;
+}
+
 function ExpandablePanel({ label, agentLabel, content }) {
   const [open, setOpen] = useState(false);
 
@@ -254,7 +276,7 @@ export default function Results({ results, topic, evidenceClaims, sourceProfiles
 
                   <div
                     className="md"
-                    dangerouslySetInnerHTML={{ __html: marked.parse(results.writer) }}
+                    dangerouslySetInnerHTML={{ __html: marked.parse(sanitizeReportMarkdown(results.writer)) }}
                   />
                 </div>
 

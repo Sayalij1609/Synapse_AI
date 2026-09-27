@@ -70,7 +70,7 @@ const AGENT_SQUAD = [
   },
 ];
 
-export default function Home({ onLaunchResearch }) {
+export default function Home({ onLaunchResearch, isAuthenticated }) {
   const scrollToArchitecture = () => {
     document.getElementById('arch-section')?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -100,7 +100,7 @@ export default function Home({ onLaunchResearch }) {
             className="home-btn primary"
             onClick={() => onLaunchResearch()}
           >
-            🚀 Launch Research Workspace
+            🚀 {isAuthenticated ? 'Launch Research Workspace' : 'Sign In & Start Research'}
           </button>
 
           <button

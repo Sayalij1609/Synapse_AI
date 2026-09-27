@@ -26,6 +26,7 @@ export default function App() {
   /* ── Authentication State ── */
   const [currentUser, setCurrentUser] = useState(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [pendingResearch, setPendingResearch] = useState(null);
 
   useEffect(() => {
     // Check existing session
@@ -37,6 +38,18 @@ export default function App() {
   const handleAuthSuccess = (user) => {
     setCurrentUser(user);
     setRefreshSignal((s) => s + 1);
+    // Launch deferred research if auth was triggered by a research attempt
+    if (pendingResearch) {
+      const { topic, projectId } = pendingResearch;
+      setPendingResearch(null);
+      if (topic) {
+        setCurrentView('dashboard');
+        setCurrentTopic(topic);
+        start(topic, projectId);
+      } else {
+        setCurrentView('dashboard');
+      }
+    }
   };
 
   const handleLogout = async () => {
@@ -89,11 +102,17 @@ export default function App() {
 
   const handleStartResearch = useCallback(
     (topic, projectId = null) => {
+      // Gate: Require authentication before research
+      if (!currentUser) {
+        setPendingResearch({ topic, projectId });
+        setAuthModalOpen(true);
+        return;
+      }
       setCurrentView('dashboard');
       setCurrentTopic(topic);
       start(topic, projectId);
     },
-    [start]
+    [start, currentUser]
   );
 
   const handleSwitchView = useCallback(
@@ -255,10 +274,17 @@ export default function App() {
         <div className="content">
           {currentView === 'home' && (
             <Home
+              isAuthenticated={!!currentUser}
               onLaunchResearch={(topic) => {
                 if (topic) {
                   handleStartResearch(topic);
                 } else {
+                  // Navigate to dashboard requires auth
+                  if (!currentUser) {
+                    setPendingResearch({ topic: null, projectId: null });
+                    setAuthModalOpen(true);
+                    return;
+                  }
                   handleSwitchView('dashboard');
                 }
               }}
