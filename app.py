@@ -413,6 +413,10 @@ def add_to_history(topic, state, user_id=None):
         "failed_sources": state.get("failed_sources", []),
         "degraded_modes": state.get("degraded_modes", []),
         "warnings": state.get("warnings", []),
+        "thematic_analysis": state.get("thematic_analysis", []),
+        "key_findings": state.get("key_findings", []),
+        "research_objectives": state.get("research_objectives", []),
+        "research_limitations": state.get("research_limitations", []),
         "telemetry": state.get("telemetry", {}),
         "agent_runs": state.get("agent_runs", []),
     }

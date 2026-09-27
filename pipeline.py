@@ -617,12 +617,18 @@ def writer_node(state: ResearchState) -> Dict[str, Any]:
             degraded_modes.append("deterministic_writer_fallback")
 
     # 3. Parse structured claims from LLM output
-    summary, claims, conclusion = parse_writer_claims_response(raw_output, sources, evidence_chunks)
+    parsed_res = parse_writer_claims_response(raw_output, sources, evidence_chunks)
+    summary, claims, conclusion = parsed_res[0], parsed_res[1], parsed_res[2]
+    objectives_list = getattr(parsed_res, "objectives", [])
+    key_findings_list = getattr(parsed_res, "key_findings", [])
+    thematic_analysis = getattr(parsed_res, "thematic_analysis", [])
+    limitations_list = getattr(parsed_res, "limitations", [])
 
     # Resilient fallback: If LLM output was empty, malformed, or yielded 0 valid claims, synthesize grounded claims deterministically
     if not claims and (sources or evidence_chunks):
         logger.warning("No valid claims extracted from Writer LLM output. Activating deterministic grounded claims synthesis (zero fabrication).")
-        det_summary, det_claims, det_conclusion = synthesize_deterministic_grounded_claims(topic, sources, evidence_chunks)
+        det_res = synthesize_deterministic_grounded_claims(topic, sources, evidence_chunks)
+        det_summary, det_claims, det_conclusion = det_res[0], det_res[1], det_res[2]
         claims = det_claims
         if not summary or summary.strip().startswith("{") or "corrupted" in summary.lower():
             summary = det_summary
@@ -638,7 +644,12 @@ def writer_node(state: ResearchState) -> Dict[str, Any]:
         claims=claims,
         conclusion=conclusion,
         sources=sources,
-        evidence_chunks=evidence_chunks
+        evidence_chunks=evidence_chunks,
+        objectives=objectives_list,
+        key_findings=key_findings_list,
+        thematic_analysis=thematic_analysis,
+        limitations=limitations_list,
+        plan=plan,
     )
 
     writer_status = "degraded" if "deterministic_claims_fallback" in degraded_modes else "completed"
@@ -675,6 +686,10 @@ def writer_node(state: ResearchState) -> Dict[str, Any]:
         "unsupported_claims": [c.model_dump() for c in grounded_report.unsupported_claims],
         "insufficient_claims": [c.model_dump() for c in grounded_report.insufficient_claims],
         "citation_trace": grounded_report.citation_trace,
+        "thematic_analysis": thematic_analysis,
+        "key_findings": key_findings_list,
+        "research_objectives": objectives_list,
+        "research_limitations": limitations_list,
         "degraded_modes": degraded_modes,
         "telemetry": telemetry.to_tree(),
         "agent_runs": [r.to_dict() for r in telemetry.get_runs()],
@@ -1173,6 +1188,10 @@ def run_research_pipeline_stream(topic: str, session_id: Optional[str] = None):
         "unsupported_claims": state.get("unsupported_claims", []),
         "insufficient_claims": state.get("insufficient_claims", []),
         "citation_trace": state.get("citation_trace", {}),
+        "thematic_analysis": state.get("thematic_analysis", []),
+        "key_findings": state.get("key_findings", []),
+        "research_objectives": state.get("research_objectives", []),
+        "research_limitations": state.get("research_limitations", []),
     }
     yield {
         "step": "telemetry",

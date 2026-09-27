@@ -377,10 +377,23 @@ def _build_from_dict(d: Dict[str, Any], default_topic: str) -> StructuredReport:
 
     # Extract Key Findings
     key_findings: List[str] = parsed_sections.get("key_findings", [])
+    if not key_findings and d.get("key_findings"):
+        for kf in d["key_findings"]:
+            if isinstance(kf, dict):
+                hl = kf.get("headline", "").strip()
+                ta = kf.get("takeaway", "").strip()
+                if hl and ta:
+                    key_findings.append(f"{hl}: {ta}")
+                elif ta:
+                    key_findings.append(ta)
+            elif isinstance(kf, str) and kf.strip():
+                key_findings.append(kf.strip())
     if not key_findings and structured_claims:
         key_findings = [c.text for c in structured_claims[:5] if c.status == "grounded"]
 
     # Research Objectives fallback
+    if not objectives and d.get("research_objectives"):
+        objectives.extend(d["research_objectives"])
     if not objectives and parsed_sections.get("objectives"):
         objectives.extend(parsed_sections["objectives"])
     if not objectives:
@@ -406,6 +419,13 @@ def _build_from_dict(d: Dict[str, Any], default_topic: str) -> StructuredReport:
 
     # Detailed Analysis Sections
     detailed_sections = parsed_sections.get("analysis_sections", [])
+    if not detailed_sections and d.get("thematic_analysis"):
+        for t_sec in d["thematic_analysis"]:
+            if isinstance(t_sec, dict):
+                detailed_sections.append(StructuredAnalysisSection(
+                    heading=t_sec.get("heading", "Analytical Synthesis"),
+                    content=t_sec.get("content", "")
+                ))
     if not detailed_sections:
         # Fallback to whole report text if no explicit headings found
         detailed_sections = [
@@ -562,6 +582,12 @@ def _extract_sections_from_markdown(report_text: str, default_topic: str) -> Dic
                 in_findings = False
                 current_heading = h_text
             elif any(k in h_lower for k in ["sources", "references"]):
+                in_summary = False
+                in_objectives = False
+                in_findings = False
+                in_limitations = False
+                current_heading = ""
+            elif any(k in h_lower for k in ["verified claims", "grounding lineage"]):
                 in_summary = False
                 in_objectives = False
                 in_findings = False

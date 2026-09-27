@@ -14,7 +14,7 @@ function sanitizeReportMarkdown(raw) {
   let text = raw;
 
   // Strip raw JSON blocks that leaked into report text
-  text = text.replace(/^\s*\{[\s\S]*?"summary"\s*:/m, '');
+  text = text.replace(/^\s*\{[\s\S]*?"(?:executive_)?summary"\s*:/m, '');
   text = text.replace(/"claims"\s*:\s*\[[\s\S]*?\]\s*\}/m, '');
 
   // Remove lines with >50% non-printable characters (binary corruption)
