@@ -30,19 +30,21 @@ load_dotenv()
 GROQ_MODEL = os.getenv("GROQ_MODEL", "qwen/qwen3.8-27b")
 GROQ_FALLBACK_MODEL = os.getenv("GROQ_FALLBACK_MODEL", "llama-3.1-8b-instant")
 GROQ_MAX_TOKENS = int(os.getenv("GROQ_MAX_TOKENS", "750"))
+GROQ_WRITER_MAX_TOKENS = int(os.getenv("GROQ_WRITER_MAX_TOKENS", "4096"))
+GROQ_CRITIC_MAX_TOKENS = int(os.getenv("GROQ_CRITIC_MAX_TOKENS", "1024"))
 LLM_TIMEOUT_SECONDS = float(os.getenv("LLM_TIMEOUT_SECONDS", "30.0"))
 
 # Primary dedicated LLM instances
 query_llm = ChatGroq(model=GROQ_MODEL, temperature=0, max_tokens=100, max_retries=2)
 reader_llm = ChatGroq(model=GROQ_MODEL, temperature=0, max_tokens=100, max_retries=2)
-writer_llm = ChatGroq(model=GROQ_MODEL, temperature=0, max_tokens=GROQ_MAX_TOKENS, max_retries=2)
-critic_llm = ChatGroq(model=GROQ_MODEL, temperature=0, max_tokens=300, max_retries=2)
+writer_llm = ChatGroq(model=GROQ_MODEL, temperature=0.1, max_tokens=GROQ_WRITER_MAX_TOKENS, max_retries=2)
+critic_llm = ChatGroq(model=GROQ_MODEL, temperature=0, max_tokens=GROQ_CRITIC_MAX_TOKENS, max_retries=2)
 
 # Fallback LLM instances (using secondary model on rate limit / outage)
 query_llm_fallback = ChatGroq(model=GROQ_FALLBACK_MODEL, temperature=0, max_tokens=100, max_retries=2)
 reader_llm_fallback = ChatGroq(model=GROQ_FALLBACK_MODEL, temperature=0, max_tokens=100, max_retries=2)
-writer_llm_fallback = ChatGroq(model=GROQ_FALLBACK_MODEL, temperature=0, max_tokens=GROQ_MAX_TOKENS, max_retries=2)
-critic_llm_fallback = ChatGroq(model=GROQ_FALLBACK_MODEL, temperature=0, max_tokens=300, max_retries=2)
+writer_llm_fallback = ChatGroq(model=GROQ_FALLBACK_MODEL, temperature=0.1, max_tokens=GROQ_WRITER_MAX_TOKENS, max_retries=2)
+critic_llm_fallback = ChatGroq(model=GROQ_FALLBACK_MODEL, temperature=0, max_tokens=GROQ_CRITIC_MAX_TOKENS, max_retries=2)
 
 # Default LLM export for backwards compatibility
 llm = writer_llm

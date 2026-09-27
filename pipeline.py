@@ -607,7 +607,7 @@ def writer_node(state: ResearchState) -> Dict[str, Any]:
             fallback_chain=writer_chain_fallback,
             input_dict={"topic": topic, "research": research_payload},
             service_name="writer_llm",
-            timeout=45.0,
+            timeout=90.0,
             max_attempts=3
         )
     except Exception as e:
