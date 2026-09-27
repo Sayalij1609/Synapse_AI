@@ -1,11 +1,44 @@
 services:
   - type: web
-    name: synapse-ai-research-system
-    env: python
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "uvicorn app:app --host 0.0.0.0 --port $PORT"
+    name: synapse-ai-research
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    healthCheckPath: /health
+    # Safe migration strategy: execute forward migrations before routing traffic to new release
+    preDeployCommand: "python migrate.py"
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.12.0
+      - key: ENVIRONMENT
+        value: production
       - key: GROQ_API_KEY
         sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: synapse-db
+          property: connectionString
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "1440"
+      - key: ALLOWED_ORIGINS
+        value: "https://synapse-ai-research.onrender.com"
+      - key: REQUEST_TIMEOUT_SECONDS
+        value: "120"
+      - key: LOG_LEVEL
+        value: INFO
+      - key: LOG_FORMAT
+        value: json
+      - key: DB_POOL_SIZE
+        value: "10"
+      - key: DB_MAX_OVERFLOW
+        value: "20"
+      - key: AUTO_MIGRATE
+        value: "false"  # Already executed in preDeployCommand
+
+databases:
+  - name: synapse-db
+    databaseName: synapse_db
+    user: synapse_user
+    plan: starter

@@ -1,0 +1,2541 @@
+{
+  "summary": {
+    "total_queries": 50,
+    "successful_queries": 50,
+    "failed_queries": 0,
+    "mode": "offline",
+    "k": 5
+  },
+  "retrieval": {
+    "precision@5": 0.6684,
+    "recall@5": 1.0,
+    "mrr": 1.0
+  },
+  "citations": {
+    "citation_coverage": 1.0,
+    "citation_correctness": 0.1027,
+    "source_traceability": 0.6454
+  },
+  "generation": {
+    "faithfulness": 0.1027,
+    "answer_relevance": 0.4683,
+    "unsupported_claim_rate": 0.3626
+  },
+  "system": {
+    "average_latency_seconds": 0.002,
+    "average_search_latency_seconds": 0.0,
+    "agent_execution_time_seconds": {
+      "Planner": 0.05,
+      "Reader": 0.001,
+      "Search": 0.0,
+      "Retrieval": 0.0,
+      "Writer": 0.0,
+      "Verification": 0.0
+    },
+    "failure_rate": 0.0,
+    "retry_rate": 0.0,
+    "average_tokens_per_query": 2498.0
+  },
+  "queries": [
+    {
+      "query_id": "q01",
+      "query": "What are the latest breakthroughs in fault-tolerant quantum error correction using surface codes?",
+      "category": "Quantum Computing",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.75,
+        "precision@5": 0.75,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 4,
+        "relevant_count": 3
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.4,
+        "source_traceability": 0.6,
+        "total_claims": 5,
+        "cited_claims": 5,
+        "grounded_claims": 2
+      },
+      "generation": {
+        "faithfulness": 0.4,
+        "answer_relevance": 0.5867,
+        "unsupported_claim_rate": 0.4,
+        "insufficient_claim_rate": 0.2,
+        "total_claims": 5,
+        "unsupported_claims": 2
+      },
+      "system": {
+        "end_to_end_latency": 0.003,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.002,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.001,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2450,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1250
+      },
+      "error": null
+    },
+    {
+      "query_id": "q02",
+      "query": "What are the primary physical mechanisms behind high-temperature cuprate superconductivity?",
+      "category": "Physics",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.0,
+        "source_traceability": 0.5,
+        "total_claims": 4,
+        "cited_claims": 4,
+        "grounded_claims": 0
+      },
+      "generation": {
+        "faithfulness": 0.0,
+        "answer_relevance": 0.5057,
+        "unsupported_claim_rate": 0.5,
+        "insufficient_claim_rate": 0.5,
+        "total_claims": 4,
+        "unsupported_claims": 2
+      },
+      "system": {
+        "end_to_end_latency": 0.001,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.0,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.0,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2450,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1250
+      },
+      "error": null
+    },
+    {
+      "query_id": "q03",
+      "query": "What is the experimental status of Majorana zero modes in semiconductor-superconductor nanowires?",
+      "category": "Quantum Computing",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.0,
+        "source_traceability": 0.5,
+        "total_claims": 4,
+        "cited_claims": 4,
+        "grounded_claims": 0
+      },
+      "generation": {
+        "faithfulness": 0.0,
+        "answer_relevance": 0.4086,
+        "unsupported_claim_rate": 0.5,
+        "insufficient_claim_rate": 0.5,
+        "total_claims": 4,
+        "unsupported_claims": 2
+      },
+      "system": {
+        "end_to_end_latency": 0.002,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.001,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.0,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2450,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1250
+      },
+      "error": null
+    },
+    {
+      "query_id": "q04",
+      "query": "What are the fundamental scaling laws governing autoregressive large language model performance?",
+      "category": "Artificial Intelligence",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.0,
+        "source_traceability": 0.5,
+        "total_claims": 4,
+        "cited_claims": 4,
+        "grounded_claims": 0
+      },
+      "generation": {
+        "faithfulness": 0.0,
+        "answer_relevance": 0.7167,
+        "unsupported_claim_rate": 0.5,
+        "insufficient_claim_rate": 0.5,
+        "total_claims": 4,
+        "unsupported_claims": 2
+      },
+      "system": {
+        "end_to_end_latency": 0.001,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.0,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.0,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2570,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1370
+      },
+      "error": null
+    },
+    {
+      "query_id": "q05",
+      "query": "How does Direct Preference Optimization (DPO) mathematically bypass the reward modeling step in RLHF?",
+      "category": "Artificial Intelligence",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.0,
+        "source_traceability": 0.5,
+        "total_claims": 4,
+        "cited_claims": 4,
+        "grounded_claims": 0
+      },
+      "generation": {
+        "faithfulness": 0.0,
+        "answer_relevance": 0.3833,
+        "unsupported_claim_rate": 0.5,
+        "insufficient_claim_rate": 0.5,
+        "total_claims": 4,
+        "unsupported_claims": 2
+      },
+      "system": {
+        "end_to_end_latency": 0.001,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.0,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.0,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2570,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1370
+      },
+      "error": null
+    },
+    {
+      "query_id": "q06",
+      "query": "What are the molecular mechanisms of GLP-1 receptor agonists in glycemic control and appetite regulation?",
+      "category": "Biomedicine",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.4,
+        "source_traceability": 0.6,
+        "total_claims": 5,
+        "cited_claims": 5,
+        "grounded_claims": 2
+      },
+      "generation": {
+        "faithfulness": 0.4,
+        "answer_relevance": 0.6333,
+        "unsupported_claim_rate": 0.6,
+        "insufficient_claim_rate": 0.0,
+        "total_claims": 5,
+        "unsupported_claims": 3
+      },
+      "system": {
+        "end_to_end_latency": 0.002,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.0,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.001,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2570,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1370
+      },
+      "error": null
+    },
+    {
+      "query_id": "q07",
+      "query": "How do lipid nanoparticles (LNPs) facilitate the intracellular delivery and endosomal escape of mRNA vaccines?",
+      "category": "Biomedicine",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.0,
+        "source_traceability": 0.6,
+        "total_claims": 5,
+        "cited_claims": 5,
+        "grounded_claims": 0
+      },
+      "generation": {
+        "faithfulness": 0.0,
+        "answer_relevance": 0.6767,
+        "unsupported_claim_rate": 0.4,
+        "insufficient_claim_rate": 0.6,
+        "total_claims": 5,
+        "unsupported_claims": 2
+      },
+      "system": {
+        "end_to_end_latency": 0.002,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.001,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.0,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2570,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1370
+      },
+      "error": null
+    },
+    {
+      "query_id": "q08",
+      "query": "What are the key chemical degradation mechanisms limiting the operational lifetime of perovskite solar cells?",
+      "category": "Clean Energy",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.0,
+        "source_traceability": 0.6,
+        "total_claims": 5,
+        "cited_claims": 5,
+        "grounded_claims": 0
+      },
+      "generation": {
+        "faithfulness": 0.0,
+        "answer_relevance": 0.2933,
+        "unsupported_claim_rate": 0.6,
+        "insufficient_claim_rate": 0.4,
+        "total_claims": 5,
+        "unsupported_claims": 3
+      },
+      "system": {
+        "end_to_end_latency": 0.001,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.0,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.0,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2570,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1370
+      },
+      "error": null
+    },
+    {
+      "query_id": "q09",
+      "query": "What mathematical hard problems underpin NIST standard post-quantum cryptographic algorithms ML-KEM and ML-DSA?",
+      "category": "Cybersecurity",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.0,
+        "source_traceability": 0.6,
+        "total_claims": 5,
+        "cited_claims": 5,
+        "grounded_claims": 0
+      },
+      "generation": {
+        "faithfulness": 0.0,
+        "answer_relevance": 0.7091,
+        "unsupported_claim_rate": 0.4,
+        "insufficient_claim_rate": 0.6,
+        "total_claims": 5,
+        "unsupported_claims": 2
+      },
+      "system": {
+        "end_to_end_latency": 0.001,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.0,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.0,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2690,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1490
+      },
+      "error": null
+    },
+    {
+      "query_id": "q10",
+      "query": "How does the Federal Reserve's Overnight Reverse Repo Facility (ON RRP) influence short-term money market liquidity?",
+      "category": "Economics",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.0,
+        "source_traceability": 0.6,
+        "total_claims": 5,
+        "cited_claims": 5,
+        "grounded_claims": 0
+      },
+      "generation": {
+        "faithfulness": 0.0,
+        "answer_relevance": 0.6417,
+        "unsupported_claim_rate": 0.4,
+        "insufficient_claim_rate": 0.6,
+        "total_claims": 5,
+        "unsupported_claims": 2
+      },
+      "system": {
+        "end_to_end_latency": 0.001,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.0,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.0,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2570,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1370
+      },
+      "error": null
+    },
+    {
+      "query_id": "q11",
+      "query": "How do neutral atom quantum computers implement Rydberg blockade gates?",
+      "category": "Quantum Computing",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.0,
+        "source_traceability": 0.6667,
+        "total_claims": 3,
+        "cited_claims": 3,
+        "grounded_claims": 0
+      },
+      "generation": {
+        "faithfulness": 0.0,
+        "answer_relevance": 0.6075,
+        "unsupported_claim_rate": 0.3333,
+        "insufficient_claim_rate": 0.6667,
+        "total_claims": 3,
+        "unsupported_claims": 1
+      },
+      "system": {
+        "end_to_end_latency": 0.001,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.001,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.0,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2450,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1250
+      },
+      "error": null
+    },
+    {
+      "query_id": "q12",
+      "query": "What is the mechanism of topological entanglement entropy in quantum spin liquids?",
+      "category": "Physics",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.0,
+        "source_traceability": 0.6667,
+        "total_claims": 3,
+        "cited_claims": 3,
+        "grounded_claims": 0
+      },
+      "generation": {
+        "faithfulness": 0.0,
+        "answer_relevance": 0.6071,
+        "unsupported_claim_rate": 0.3333,
+        "insufficient_claim_rate": 0.6667,
+        "total_claims": 3,
+        "unsupported_claims": 1
+      },
+      "system": {
+        "end_to_end_latency": 0.001,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.0,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.0,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2330,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1130
+      },
+      "error": null
+    },
+    {
+      "query_id": "q13",
+      "query": "What causes phase noise in optical frequency combs and how is it suppressed?",
+      "category": "Physics",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.0,
+        "source_traceability": 0.6667,
+        "total_claims": 3,
+        "cited_claims": 3,
+        "grounded_claims": 0
+      },
+      "generation": {
+        "faithfulness": 0.0,
+        "answer_relevance": 0.7393,
+        "unsupported_claim_rate": 0.3333,
+        "insufficient_claim_rate": 0.6667,
+        "total_claims": 3,
+        "unsupported_claims": 1
+      },
+      "system": {
+        "end_to_end_latency": 0.001,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.0,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.0,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2330,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1130
+      },
+      "error": null
+    },
+    {
+      "query_id": "q14",
+      "query": "How do diamond nitrogen-vacancy centers achieve nanoscale magnetic field sensing?",
+      "category": "Physics",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.0,
+        "source_traceability": 0.6667,
+        "total_claims": 3,
+        "cited_claims": 3,
+        "grounded_claims": 0
+      },
+      "generation": {
+        "faithfulness": 0.0,
+        "answer_relevance": 0.4675,
+        "unsupported_claim_rate": 0.3333,
+        "insufficient_claim_rate": 0.6667,
+        "total_claims": 3,
+        "unsupported_claims": 1
+      },
+      "system": {
+        "end_to_end_latency": 0.002,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.001,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.0,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2450,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1250
+      },
+      "error": null
+    },
+    {
+      "query_id": "q15",
+      "query": "What are the cosmological constraints on light dark matter candidates like axions?",
+      "category": "Physics",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.0,
+        "source_traceability": 0.6667,
+        "total_claims": 3,
+        "cited_claims": 3,
+        "grounded_claims": 0
+      },
+      "generation": {
+        "faithfulness": 0.0,
+        "answer_relevance": 0.3925,
+        "unsupported_claim_rate": 0.3333,
+        "insufficient_claim_rate": 0.6667,
+        "total_claims": 3,
+        "unsupported_claims": 1
+      },
+      "system": {
+        "end_to_end_latency": 0.001,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.0,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.0,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2450,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1250
+      },
+      "error": null
+    },
+    {
+      "query_id": "q16",
+      "query": "What are the computational trade-offs between FlashAttention and standard multi-head attention?",
+      "category": "Artificial Intelligence",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.3333,
+        "source_traceability": 0.6667,
+        "total_claims": 3,
+        "cited_claims": 3,
+        "grounded_claims": 1
+      },
+      "generation": {
+        "faithfulness": 0.3333,
+        "answer_relevance": 0.5952,
+        "unsupported_claim_rate": 0.3333,
+        "insufficient_claim_rate": 0.3333,
+        "total_claims": 3,
+        "unsupported_claims": 1
+      },
+      "system": {
+        "end_to_end_latency": 0.002,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.001,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.0,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2570,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1370
+      },
+      "error": null
+    },
+    {
+      "query_id": "q17",
+      "query": "How does speculative decoding achieve inference speedups in large language models without output degradation?",
+      "category": "Artificial Intelligence",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.0,
+        "source_traceability": 0.6667,
+        "total_claims": 3,
+        "cited_claims": 3,
+        "grounded_claims": 0
+      },
+      "generation": {
+        "faithfulness": 0.0,
+        "answer_relevance": 0.6964,
+        "unsupported_claim_rate": 0.3333,
+        "insufficient_claim_rate": 0.6667,
+        "total_claims": 3,
+        "unsupported_claims": 1
+      },
+      "system": {
+        "end_to_end_latency": 0.002,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.001,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.0,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2450,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1250
+      },
+      "error": null
+    },
+    {
+      "query_id": "q18",
+      "query": "What are the mathematical guarantees of LoRA (Low-Rank Adaptation) for parameter-efficient fine-tuning?",
+      "category": "Artificial Intelligence",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.0,
+        "source_traceability": 0.6667,
+        "total_claims": 3,
+        "cited_claims": 3,
+        "grounded_claims": 0
+      },
+      "generation": {
+        "faithfulness": 0.0,
+        "answer_relevance": 0.3657,
+        "unsupported_claim_rate": 0.3333,
+        "insufficient_claim_rate": 0.6667,
+        "total_claims": 3,
+        "unsupported_claims": 1
+      },
+      "system": {
+        "end_to_end_latency": 0.001,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.001,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.0,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2450,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1250
+      },
+      "error": null
+    },
+    {
+      "query_id": "q19",
+      "query": "How do mixture-of-experts (MoE) architectures stabilize routing and prevent expert collapse during training?",
+      "category": "Artificial Intelligence",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.0,
+        "source_traceability": 0.6667,
+        "total_claims": 3,
+        "cited_claims": 3,
+        "grounded_claims": 0
+      },
+      "generation": {
+        "faithfulness": 0.0,
+        "answer_relevance": 0.41,
+        "unsupported_claim_rate": 0.3333,
+        "insufficient_claim_rate": 0.6667,
+        "total_claims": 3,
+        "unsupported_claims": 1
+      },
+      "system": {
+        "end_to_end_latency": 0.003,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.001,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.0,
+          "Verification": 0.001
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2570,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1370
+      },
+      "error": null
+    },
+    {
+      "query_id": "q20",
+      "query": "What are the vulnerabilities of Retrieval-Augmented Generation (RAG) to indirect prompt injection?",
+      "category": "Cybersecurity",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.0,
+        "source_traceability": 0.6667,
+        "total_claims": 3,
+        "cited_claims": 3,
+        "grounded_claims": 0
+      },
+      "generation": {
+        "faithfulness": 0.0,
+        "answer_relevance": 0.4514,
+        "unsupported_claim_rate": 0.3333,
+        "insufficient_claim_rate": 0.6667,
+        "total_claims": 3,
+        "unsupported_claims": 1
+      },
+      "system": {
+        "end_to_end_latency": 0.001,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.001,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.0,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2450,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1250
+      },
+      "error": null
+    },
+    {
+      "query_id": "q21",
+      "query": "How do state space models like Mamba achieve sub-quadratic sequence modeling?",
+      "category": "Artificial Intelligence",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.0,
+        "source_traceability": 0.6667,
+        "total_claims": 3,
+        "cited_claims": 3,
+        "grounded_claims": 0
+      },
+      "generation": {
+        "faithfulness": 0.0,
+        "answer_relevance": 0.5533,
+        "unsupported_claim_rate": 0.3333,
+        "insufficient_claim_rate": 0.6667,
+        "total_claims": 3,
+        "unsupported_claims": 1
+      },
+      "system": {
+        "end_to_end_latency": 0.001,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.0,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.0,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2450,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1250
+      },
+      "error": null
+    },
+    {
+      "query_id": "q22",
+      "query": "What are the empirical failure modes of reinforcement learning from AI feedback (RLAIF)?",
+      "category": "Artificial Intelligence",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.0,
+        "source_traceability": 0.6667,
+        "total_claims": 3,
+        "cited_claims": 3,
+        "grounded_claims": 0
+      },
+      "generation": {
+        "faithfulness": 0.0,
+        "answer_relevance": 0.355,
+        "unsupported_claim_rate": 0.3333,
+        "insufficient_claim_rate": 0.6667,
+        "total_claims": 3,
+        "unsupported_claims": 1
+      },
+      "system": {
+        "end_to_end_latency": 0.001,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.0,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.0,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2450,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1250
+      },
+      "error": null
+    },
+    {
+      "query_id": "q23",
+      "query": "How do prime editors achieve targeted genomic insertions without double-strand DNA breaks?",
+      "category": "Biomedicine",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.0,
+        "source_traceability": 0.6667,
+        "total_claims": 3,
+        "cited_claims": 3,
+        "grounded_claims": 0
+      },
+      "generation": {
+        "faithfulness": 0.0,
+        "answer_relevance": 0.68,
+        "unsupported_claim_rate": 0.3333,
+        "insufficient_claim_rate": 0.6667,
+        "total_claims": 3,
+        "unsupported_claims": 1
+      },
+      "system": {
+        "end_to_end_latency": 0.003,
+        "search_latency": 0.001,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.0,
+          "Search": 0.001,
+          "Retrieval": 0.001,
+          "Writer": 0.001,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2450,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1250
+      },
+      "error": null
+    },
+    {
+      "query_id": "q24",
+      "query": "What are the immunogenic mechanisms underlying CAR-T cell exhaustion in solid tumors?",
+      "category": "Biomedicine",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.6667,
+        "source_traceability": 0.6667,
+        "total_claims": 3,
+        "cited_claims": 3,
+        "grounded_claims": 2
+      },
+      "generation": {
+        "faithfulness": 0.6667,
+        "answer_relevance": 0.6958,
+        "unsupported_claim_rate": 0.3333,
+        "insufficient_claim_rate": 0.0,
+        "total_claims": 3,
+        "unsupported_claims": 1
+      },
+      "system": {
+        "end_to_end_latency": 0.002,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.001,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.0,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2570,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1370
+      },
+      "error": null
+    },
+    {
+      "query_id": "q25",
+      "query": "What is the structural basis of antibody neutralization against emerging SARS-CoV-2 spike variants?",
+      "category": "Biomedicine",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.0,
+        "source_traceability": 0.6667,
+        "total_claims": 3,
+        "cited_claims": 3,
+        "grounded_claims": 0
+      },
+      "generation": {
+        "faithfulness": 0.0,
+        "answer_relevance": 0.45,
+        "unsupported_claim_rate": 0.3333,
+        "insufficient_claim_rate": 0.6667,
+        "total_claims": 3,
+        "unsupported_claims": 1
+      },
+      "system": {
+        "end_to_end_latency": 0.001,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.0,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.0,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2570,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1370
+      },
+      "error": null
+    },
+    {
+      "query_id": "q26",
+      "query": "How do epigenetic alterations in DNA methylation drive oncogene activation in colorectal cancer?",
+      "category": "Biomedicine",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.6667,
+        "source_traceability": 0.6667,
+        "total_claims": 3,
+        "cited_claims": 3,
+        "grounded_claims": 2
+      },
+      "generation": {
+        "faithfulness": 0.6667,
+        "answer_relevance": 0.7267,
+        "unsupported_claim_rate": 0.3333,
+        "insufficient_claim_rate": 0.0,
+        "total_claims": 3,
+        "unsupported_claims": 1
+      },
+      "system": {
+        "end_to_end_latency": 0.002,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.001,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.001,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2450,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1250
+      },
+      "error": null
+    },
+    {
+      "query_id": "q27",
+      "query": "What are the pharmacokinetic factors determining blood-brain barrier permeability of therapeutic peptides?",
+      "category": "Biomedicine",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.0,
+        "source_traceability": 0.6667,
+        "total_claims": 3,
+        "cited_claims": 3,
+        "grounded_claims": 0
+      },
+      "generation": {
+        "faithfulness": 0.0,
+        "answer_relevance": 0.28,
+        "unsupported_claim_rate": 0.3333,
+        "insufficient_claim_rate": 0.6667,
+        "total_claims": 3,
+        "unsupported_claims": 1
+      },
+      "system": {
+        "end_to_end_latency": 0.002,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.001,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.0,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2450,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1250
+      },
+      "error": null
+    },
+    {
+      "query_id": "q28",
+      "query": "How do mitochondrial DNA mutations contribute to neurodegenerative pathologies?",
+      "category": "Biomedicine",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.0,
+        "source_traceability": 0.6667,
+        "total_claims": 3,
+        "cited_claims": 3,
+        "grounded_claims": 0
+      },
+      "generation": {
+        "faithfulness": 0.0,
+        "answer_relevance": 0.52,
+        "unsupported_claim_rate": 0.3333,
+        "insufficient_claim_rate": 0.6667,
+        "total_claims": 3,
+        "unsupported_claims": 1
+      },
+      "system": {
+        "end_to_end_latency": 0.001,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.0,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.0,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2450,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1250
+      },
+      "error": null
+    },
+    {
+      "query_id": "q29",
+      "query": "What is the role of the gut microbiome in modulating immune checkpoint inhibitor efficacy?",
+      "category": "Biomedicine",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.6667,
+        "source_traceability": 0.6667,
+        "total_claims": 3,
+        "cited_claims": 3,
+        "grounded_claims": 2
+      },
+      "generation": {
+        "faithfulness": 0.6667,
+        "answer_relevance": 0.3175,
+        "unsupported_claim_rate": 0.3333,
+        "insufficient_claim_rate": 0.0,
+        "total_claims": 3,
+        "unsupported_claims": 1
+      },
+      "system": {
+        "end_to_end_latency": 0.001,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.0,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.0,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2450,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1250
+      },
+      "error": null
+    },
+    {
+      "query_id": "q30",
+      "query": "What are the transport limitations in solid-state lithium battery solid electrolytes?",
+      "category": "Clean Energy",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.0,
+        "source_traceability": 0.6667,
+        "total_claims": 3,
+        "cited_claims": 3,
+        "grounded_claims": 0
+      },
+      "generation": {
+        "faithfulness": 0.0,
+        "answer_relevance": 0.2686,
+        "unsupported_claim_rate": 0.3333,
+        "insufficient_claim_rate": 0.6667,
+        "total_claims": 3,
+        "unsupported_claims": 1
+      },
+      "system": {
+        "end_to_end_latency": 0.002,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.0,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.0,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2450,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1250
+      },
+      "error": null
+    },
+    {
+      "query_id": "q31",
+      "query": "How do direct air capture (DAC) systems compare in thermodynamic energy penalties between solid and liquid sorbents?",
+      "category": "Clean Energy",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.6667,
+        "source_traceability": 0.6667,
+        "total_claims": 3,
+        "cited_claims": 3,
+        "grounded_claims": 2
+      },
+      "generation": {
+        "faithfulness": 0.6667,
+        "answer_relevance": 0.3244,
+        "unsupported_claim_rate": 0.3333,
+        "insufficient_claim_rate": 0.0,
+        "total_claims": 3,
+        "unsupported_claims": 1
+      },
+      "system": {
+        "end_to_end_latency": 0.003,
+        "search_latency": 0.001,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.001,
+          "Search": 0.001,
+          "Retrieval": 0.0,
+          "Writer": 0.001,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2570,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1370
+      },
+      "error": null
+    },
+    {
+      "query_id": "q32",
+      "query": "What are the rate-limiting chemical steps in green hydrogen production via proton exchange membrane (PEM) water electrolysis?",
+      "category": "Clean Energy",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.0,
+        "source_traceability": 0.6667,
+        "total_claims": 3,
+        "cited_claims": 3,
+        "grounded_claims": 0
+      },
+      "generation": {
+        "faithfulness": 0.0,
+        "answer_relevance": 0.3962,
+        "unsupported_claim_rate": 0.3333,
+        "insufficient_claim_rate": 0.6667,
+        "total_claims": 3,
+        "unsupported_claims": 1
+      },
+      "system": {
+        "end_to_end_latency": 0.001,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.0,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.0,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2570,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1370
+      },
+      "error": null
+    },
+    {
+      "query_id": "q33",
+      "query": "How does aerosol-cloud radiative forcing contribute to uncertainty in Earth climate models?",
+      "category": "Climate Science",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.0,
+        "source_traceability": 0.6667,
+        "total_claims": 3,
+        "cited_claims": 3,
+        "grounded_claims": 0
+      },
+      "generation": {
+        "faithfulness": 0.0,
+        "answer_relevance": 0.6725,
+        "unsupported_claim_rate": 0.3333,
+        "insufficient_claim_rate": 0.6667,
+        "total_claims": 3,
+        "unsupported_claims": 1
+      },
+      "system": {
+        "end_to_end_latency": 0.002,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.001,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.0,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2450,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1250
+      },
+      "error": null
+    },
+    {
+      "query_id": "q34",
+      "query": "What are the mechanisms of sodium-ion battery cathode degradation during deep cycling?",
+      "category": "Clean Energy",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.0,
+        "source_traceability": 0.6667,
+        "total_claims": 3,
+        "cited_claims": 3,
+        "grounded_claims": 0
+      },
+      "generation": {
+        "faithfulness": 0.0,
+        "answer_relevance": 0.3175,
+        "unsupported_claim_rate": 0.3333,
+        "insufficient_claim_rate": 0.6667,
+        "total_claims": 3,
+        "unsupported_claims": 1
+      },
+      "system": {
+        "end_to_end_latency": 0.003,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.001,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.001,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2450,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1250
+      },
+      "error": null
+    },
+    {
+      "query_id": "q35",
+      "query": "What is the role of ocean overturning circulation slowing on the North Atlantic subpolar gyre heat budget?",
+      "category": "Climate Science",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.0,
+        "source_traceability": 0.6667,
+        "total_claims": 3,
+        "cited_claims": 3,
+        "grounded_claims": 0
+      },
+      "generation": {
+        "faithfulness": 0.0,
+        "answer_relevance": 0.3309,
+        "unsupported_claim_rate": 0.3333,
+        "insufficient_claim_rate": 0.6667,
+        "total_claims": 3,
+        "unsupported_claims": 1
+      },
+      "system": {
+        "end_to_end_latency": 0.002,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.001,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.0,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2450,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1250
+      },
+      "error": null
+    },
+    {
+      "query_id": "q36",
+      "query": "How do thermoelectric skutterudites achieve high figures of merit through cage filling?",
+      "category": "Materials Science",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.0,
+        "source_traceability": 0.6667,
+        "total_claims": 3,
+        "cited_claims": 3,
+        "grounded_claims": 0
+      },
+      "generation": {
+        "faithfulness": 0.0,
+        "answer_relevance": 0.4167,
+        "unsupported_claim_rate": 0.3333,
+        "insufficient_claim_rate": 0.6667,
+        "total_claims": 3,
+        "unsupported_claims": 1
+      },
+      "system": {
+        "end_to_end_latency": 0.001,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.001,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.0,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2570,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1370
+      },
+      "error": null
+    },
+    {
+      "query_id": "q37",
+      "query": "What are the microarchitectural mechanisms behind transient execution attacks like Spectre and Meltdown?",
+      "category": "Cybersecurity",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.0,
+        "source_traceability": 0.6667,
+        "total_claims": 3,
+        "cited_claims": 3,
+        "grounded_claims": 0
+      },
+      "generation": {
+        "faithfulness": 0.0,
+        "answer_relevance": 0.45,
+        "unsupported_claim_rate": 0.3333,
+        "insufficient_claim_rate": 0.6667,
+        "total_claims": 3,
+        "unsupported_claims": 1
+      },
+      "system": {
+        "end_to_end_latency": 0.002,
+        "search_latency": 0.001,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.001,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.0,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2570,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1370
+      },
+      "error": null
+    },
+    {
+      "query_id": "q38",
+      "query": "How do zero-knowledge succinct non-interactive arguments of knowledge (zk-SNARKs) achieve succinctness?",
+      "category": "Cybersecurity",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.6667,
+        "source_traceability": 0.6667,
+        "total_claims": 3,
+        "cited_claims": 3,
+        "grounded_claims": 2
+      },
+      "generation": {
+        "faithfulness": 0.6667,
+        "answer_relevance": 0.35,
+        "unsupported_claim_rate": 0.3333,
+        "insufficient_claim_rate": 0.0,
+        "total_claims": 3,
+        "unsupported_claims": 1
+      },
+      "system": {
+        "end_to_end_latency": 0.002,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.001,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.0,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2570,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1370
+      },
+      "error": null
+    },
+    {
+      "query_id": "q39",
+      "query": "What are the formal verification techniques used to prove functional correctness in microkernel operating systems?",
+      "category": "Computer Systems",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.0,
+        "source_traceability": 0.6667,
+        "total_claims": 3,
+        "cited_claims": 3,
+        "grounded_claims": 0
+      },
+      "generation": {
+        "faithfulness": 0.0,
+        "answer_relevance": 0.23,
+        "unsupported_claim_rate": 0.3333,
+        "insufficient_claim_rate": 0.6667,
+        "total_claims": 3,
+        "unsupported_claims": 1
+      },
+      "system": {
+        "end_to_end_latency": 0.001,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.001,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.0,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2450,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1250
+      },
+      "error": null
+    },
+    {
+      "query_id": "q40",
+      "query": "How do consensus protocols in permissionless blockchains defend against long-range attacks in Proof-of-Stake?",
+      "category": "Cybersecurity",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.0,
+        "source_traceability": 0.6667,
+        "total_claims": 3,
+        "cited_claims": 3,
+        "grounded_claims": 0
+      },
+      "generation": {
+        "faithfulness": 0.0,
+        "answer_relevance": 0.38,
+        "unsupported_claim_rate": 0.3333,
+        "insufficient_claim_rate": 0.6667,
+        "total_claims": 3,
+        "unsupported_claims": 1
+      },
+      "system": {
+        "end_to_end_latency": 0.002,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.0,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.0,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2450,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1250
+      },
+      "error": null
+    },
+    {
+      "query_id": "q41",
+      "query": "What are the memory safety guarantees and compiler invariants enforced by the Rust borrow checker?",
+      "category": "Computer Systems",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.0,
+        "source_traceability": 0.6667,
+        "total_claims": 3,
+        "cited_claims": 3,
+        "grounded_claims": 0
+      },
+      "generation": {
+        "faithfulness": 0.0,
+        "answer_relevance": 0.52,
+        "unsupported_claim_rate": 0.3333,
+        "insufficient_claim_rate": 0.6667,
+        "total_claims": 3,
+        "unsupported_claims": 1
+      },
+      "system": {
+        "end_to_end_latency": 0.002,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.001,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.001,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2450,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1250
+      },
+      "error": null
+    },
+    {
+      "query_id": "q42",
+      "query": "What is the architecture of confidential computing enclaves like AMD SEV-SNP and Intel TDX?",
+      "category": "Cybersecurity",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.0,
+        "source_traceability": 0.6667,
+        "total_claims": 3,
+        "cited_claims": 3,
+        "grounded_claims": 0
+      },
+      "generation": {
+        "faithfulness": 0.0,
+        "answer_relevance": 0.45,
+        "unsupported_claim_rate": 0.3333,
+        "insufficient_claim_rate": 0.6667,
+        "total_claims": 3,
+        "unsupported_claims": 1
+      },
+      "system": {
+        "end_to_end_latency": 0.001,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.001,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.0,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2570,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1370
+      },
+      "error": null
+    },
+    {
+      "query_id": "q43",
+      "query": "What was the transmission channel of central bank quantitative easing (QE) to sovereign bond yields?",
+      "category": "Economics",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.0,
+        "source_traceability": 0.6667,
+        "total_claims": 3,
+        "cited_claims": 3,
+        "grounded_claims": 0
+      },
+      "generation": {
+        "faithfulness": 0.0,
+        "answer_relevance": 0.53,
+        "unsupported_claim_rate": 0.3333,
+        "insufficient_claim_rate": 0.6667,
+        "total_claims": 3,
+        "unsupported_claims": 1
+      },
+      "system": {
+        "end_to_end_latency": 0.002,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.001,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.0,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2570,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1370
+      },
+      "error": null
+    },
+    {
+      "query_id": "q44",
+      "query": "How do semiconductor supply chain bottlenecks affect macroeconomic inflation dynamics?",
+      "category": "Economics",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.0,
+        "source_traceability": 0.6667,
+        "total_claims": 3,
+        "cited_claims": 3,
+        "grounded_claims": 0
+      },
+      "generation": {
+        "faithfulness": 0.0,
+        "answer_relevance": 0.215,
+        "unsupported_claim_rate": 0.3333,
+        "insufficient_claim_rate": 0.6667,
+        "total_claims": 3,
+        "unsupported_claims": 1
+      },
+      "system": {
+        "end_to_end_latency": 0.001,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.0,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.0,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2450,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1250
+      },
+      "error": null
+    },
+    {
+      "query_id": "q45",
+      "query": "What are the structural mechanisms behind high-beta economic cycles in emerging market sovereign debt?",
+      "category": "Economics",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.0,
+        "source_traceability": 0.6667,
+        "total_claims": 3,
+        "cited_claims": 3,
+        "grounded_claims": 0
+      },
+      "generation": {
+        "faithfulness": 0.0,
+        "answer_relevance": 0.23,
+        "unsupported_claim_rate": 0.3333,
+        "insufficient_claim_rate": 0.6667,
+        "total_claims": 3,
+        "unsupported_claims": 1
+      },
+      "system": {
+        "end_to_end_latency": 0.001,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.0,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.0,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2450,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1250
+      },
+      "error": null
+    },
+    {
+      "query_id": "q46",
+      "query": "What are the propulsion and aerothermal trade-offs of scramjet engines at hypersonic Mach numbers?",
+      "category": "Aerospace",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.0,
+        "source_traceability": 0.6667,
+        "total_claims": 3,
+        "cited_claims": 3,
+        "grounded_claims": 0
+      },
+      "generation": {
+        "faithfulness": 0.0,
+        "answer_relevance": 0.3175,
+        "unsupported_claim_rate": 0.3333,
+        "insufficient_claim_rate": 0.6667,
+        "total_claims": 3,
+        "unsupported_claims": 1
+      },
+      "system": {
+        "end_to_end_latency": 0.001,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.0,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.0,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2450,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1250
+      },
+      "error": null
+    },
+    {
+      "query_id": "q47",
+      "query": "How does JWST infrared spectroscopy characterize exoplanet atmospheric compositions?",
+      "category": "Astrophysics",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.0,
+        "source_traceability": 0.6667,
+        "total_claims": 3,
+        "cited_claims": 3,
+        "grounded_claims": 0
+      },
+      "generation": {
+        "faithfulness": 0.0,
+        "answer_relevance": 0.4048,
+        "unsupported_claim_rate": 0.3333,
+        "insufficient_claim_rate": 0.6667,
+        "total_claims": 3,
+        "unsupported_claims": 1
+      },
+      "system": {
+        "end_to_end_latency": 0.001,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.0,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.0,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2570,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1370
+      },
+      "error": null
+    },
+    {
+      "query_id": "q48",
+      "query": "What are the immunological correlates of protection induced by malaria candidate vaccines?",
+      "category": "Public Health",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.6667,
+        "source_traceability": 0.6667,
+        "total_claims": 3,
+        "cited_claims": 3,
+        "grounded_claims": 2
+      },
+      "generation": {
+        "faithfulness": 0.6667,
+        "answer_relevance": 0.3929,
+        "unsupported_claim_rate": 0.3333,
+        "insufficient_claim_rate": 0.0,
+        "total_claims": 3,
+        "unsupported_claims": 1
+      },
+      "system": {
+        "end_to_end_latency": 0.001,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.0,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.0,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2570,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1370
+      },
+      "error": null
+    },
+    {
+      "query_id": "q49",
+      "query": "How do wastewater surveillance programs detect viral community transmission dynamics?",
+      "category": "Public Health",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.0,
+        "source_traceability": 0.6667,
+        "total_claims": 3,
+        "cited_claims": 3,
+        "grounded_claims": 0
+      },
+      "generation": {
+        "faithfulness": 0.0,
+        "answer_relevance": 0.3925,
+        "unsupported_claim_rate": 0.3333,
+        "insufficient_claim_rate": 0.6667,
+        "total_claims": 3,
+        "unsupported_claims": 1
+      },
+      "system": {
+        "end_to_end_latency": 0.001,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.0,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.0,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2450,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1250
+      },
+      "error": null
+    },
+    {
+      "query_id": "q50",
+      "query": "What are the cellular mechanisms of action of antibody-drug conjugates (ADCs) in oncology?",
+      "category": "Biomedicine",
+      "status": "success",
+      "retrieval": {
+        "precision_at_k": 0.6667,
+        "precision@5": 0.6667,
+        "recall_at_k": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "k": 5,
+        "retrieved_count": 3,
+        "relevant_count": 2
+      },
+      "citations": {
+        "citation_coverage": 1.0,
+        "citation_correctness": 0.0,
+        "source_traceability": 0.6667,
+        "total_claims": 3,
+        "cited_claims": 3,
+        "grounded_claims": 0
+      },
+      "generation": {
+        "faithfulness": 0.0,
+        "answer_relevance": 0.3619,
+        "unsupported_claim_rate": 0.3333,
+        "insufficient_claim_rate": 0.6667,
+        "total_claims": 3,
+        "unsupported_claims": 1
+      },
+      "system": {
+        "end_to_end_latency": 0.001,
+        "search_latency": 0.0,
+        "agent_execution_times": {
+          "Planner": 0.05,
+          "Reader": 0.0,
+          "Search": 0.0,
+          "Retrieval": 0.0,
+          "Writer": 0.0,
+          "Verification": 0.0
+        },
+        "failure_rate": 0.0,
+        "retry_rate": 0.0,
+        "total_tokens": 2570,
+        "prompt_tokens": 1200,
+        "completion_tokens": 1370
+      },
+      "error": null
+    }
+  ]
+}

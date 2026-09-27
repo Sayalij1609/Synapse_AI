@@ -1,6 +1,7 @@
 import React from 'react';
 
 const AGENTS = [
+  { key: 'planner', emoji: '📋', name: 'Planner Agent', desc: 'Research Decomposition' },
   { key: 'search', emoji: '🔍', name: 'Search Agent', desc: 'Live Web Discovery' },
   { key: 'reader', emoji: '📄', name: 'Reader Agent', desc: 'Content Extraction' },
   { key: 'writer', emoji: '✍️', name: 'Writer Agent', desc: 'Executive Synthesis' },

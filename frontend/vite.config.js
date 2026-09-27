@@ -6,10 +6,10 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/run': 'http://127.0.0.1:5000',
-      '/download-pdf': 'http://127.0.0.1:5000',
-      '/download-docx': 'http://127.0.0.1:5000',
-      '/history': 'http://127.0.0.1:5000',
+      '/run': 'http://127.0.0.1:8000',
+      '/download-pdf': 'http://127.0.0.1:8000',
+      '/download-docx': 'http://127.0.0.1:8000',
+      '/history': 'http://127.0.0.1:8000',
     },
   },
 })

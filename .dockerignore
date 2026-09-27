@@ -7,7 +7,7 @@ __pycache__/
 *.pyo
 *.pyd
 
-# Environment variables / secrets
+# Environment variables & secrets (CRITICAL: Never bake secrets into image)
 .env
 .env.*
 !.env.example
@@ -17,21 +17,27 @@ __pycache__/
 .gitignore
 .github/
 
-# Node
+# Node & Frontend
 frontend/node_modules/
 frontend/dist/
 
-# Build / cache
+# Databases & local state
+synapse.db
+*.sqlite
+*.sqlite3
+chroma_db/
+eval_results/
+research_history.json
+
+# Build & Test Caches
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
 *.log
 
-# OS
+# OS & Editor
 .DS_Store
 Thumbs.db
-
-# IDE
 .vscode/
 .idea/
 

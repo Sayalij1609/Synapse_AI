@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { marked } from 'marked';
-import { downloadPdf, downloadDocx } from '../api';
+import { downloadPdf, downloadDocx, downloadMarkdown, fetchSessionDossier, triggerDownload } from '../api';
 import NewsResources from './NewsResources';
+import AgentTelemetryView from './AgentTelemetryView';
+import EvidencePanel from './EvidencePanel';
 
 function ExpandablePanel({ label, agentLabel, content }) {
   const [open, setOpen] = useState(false);
@@ -26,31 +28,58 @@ function ExpandablePanel({ label, agentLabel, content }) {
   );
 }
 
-export default function Results({ results, topic }) {
+export default function Results({ results, topic, evidenceClaims, sourceProfiles }) {
   const [activeTab, setActiveTab] = useState('report');
   const [pdfLoading, setPdfLoading] = useState(false);
   const [docxLoading, setDocxLoading] = useState(false);
+  const [mdLoading, setMdLoading] = useState(false);
+  const [dossierLoading, setDossierLoading] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
 
-  const hasAny = results.search || results.reader || results.writer || results.critic;
+  const hasAny = results.planner || results.search || results.reader || results.writer || results.critic;
 
   if (!hasAny) return null;
 
-  const handleDownloadMarkdown = () => {
+  const handleDownloadMarkdown = async () => {
     if (!results.writer) return;
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(
-      new Blob([results.writer], { type: 'text/markdown' })
-    );
-    a.download = `synapse_${topic ? topic.replace(/\s+/g, '_') : 'report'}.md`;
-    a.click();
+    setMdLoading(true);
+    const safeTopic = topic ? topic.replace(/\s+/g, '_') : 'report';
+    try {
+      const blob = await downloadMarkdown({
+        report: results.writer,
+        topic,
+        sessionId: results.session_id || results.id,
+        claims: evidenceClaims || results.claims,
+        sources: sourceProfiles || results.sources,
+      });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `synapse_${safeTopic}.md`;
+      a.click();
+    } catch (err) {
+      console.warn('Backend markdown export failed, using local raw report fallback', err);
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(
+        new Blob([results.writer], { type: 'text/markdown' })
+      );
+      a.download = `synapse_${safeTopic}.md`;
+      a.click();
+    } finally {
+      setMdLoading(false);
+    }
   };
 
   const handleDownloadPdf = async () => {
     if (!results.writer) return;
     setPdfLoading(true);
     try {
-      const blob = await downloadPdf(results.writer, topic);
+      const blob = await downloadPdf({
+        report: results.writer,
+        topic,
+        sessionId: results.session_id || results.id,
+        claims: evidenceClaims || results.claims,
+        sources: sourceProfiles || results.sources,
+      });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = `synapse_${topic ? topic.replace(/\s+/g, '_') : 'report'}.pdf`;
@@ -66,7 +95,13 @@ export default function Results({ results, topic }) {
     if (!results.writer) return;
     setDocxLoading(true);
     try {
-      const blob = await downloadDocx(results.writer, topic);
+      const blob = await downloadDocx({
+        report: results.writer,
+        topic,
+        sessionId: results.session_id || results.id,
+        claims: evidenceClaims || results.claims,
+        sources: sourceProfiles || results.sources,
+      });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = `synapse_${topic ? topic.replace(/\s+/g, '_') : 'report'}.docx`;
@@ -78,12 +113,82 @@ export default function Results({ results, topic }) {
     }
   };
 
+  const handleExportDossier = async () => {
+    setDossierLoading(true);
+    try {
+      const sessionId = results.session_id || results.id;
+      let dossierContent = '';
+      if (sessionId) {
+        try {
+          const d = await fetchSessionDossier(sessionId);
+          if (d?.dossier_markdown) {
+            dossierContent = d.dossier_markdown;
+          }
+        } catch {
+          // fallback to client-compiled dossier
+        }
+      }
+
+      if (!dossierContent) {
+        const lines = [
+          '# SYNAPSE AI — Research Dossier',
+          `**Topic**: ${topic || 'Autonomous Research'}`,
+          `**Generated**: ${new Date().toISOString()}`,
+          '',
+          '---',
+          '## 1. Executive Research Report',
+          '',
+          results.writer || '*No report text generated.*',
+          '',
+          '---',
+          '## 2. Research Plan & Strategy',
+          '',
+          results.planner || '*No plan data available.*',
+          '',
+        ];
+
+        if (evidenceClaims && evidenceClaims.totalClaims > 0) {
+          lines.push('---', '## 3. Evidence & Grounded Claims Lineage', '');
+          const { grounded = [], unsupported = [], insufficient = [] } = evidenceClaims;
+          lines.push(`*Summary: ${grounded.length} grounded, ${insufficient.length} insufficient, ${unsupported.length} unsupported.*`, '');
+          [...grounded, ...insufficient, ...unsupported].forEach((c, idx) => {
+            lines.push(`### Claim ${idx + 1}: ${c.text}`);
+            lines.push(`- Status: ${c.status || 'Audited'} | Confidence: ${((c.confidence ?? 0.5) * 100).toFixed(0)}%`);
+            if (c.verification_notes) lines.push(`- Notes: ${c.verification_notes}`);
+            lines.push('');
+          });
+        }
+
+        if (sourceProfiles && sourceProfiles.length > 0) {
+          lines.push('---', '## 4. Source Quality Registry', '');
+          lines.push('| Title | Domain | Type | Freshness | Quality Score |');
+          lines.push('|-------|--------|------|-----------|---------------|');
+          sourceProfiles.forEach(s => {
+            lines.push(`| [${s.title || s.url}](${s.url}) | ${s.domain || '—'} | ${s.source_type || '—'} | ${s.freshness || 'undated'} | ${s.composite_score?.toFixed(2) || '—'} |`);
+          });
+          lines.push('');
+        }
+
+        dossierContent = lines.join('\n');
+      }
+
+      const safeTopic = (topic || 'research_session').toLowerCase().replace(/[^a-z0-9_-]/g, '_').slice(0, 40);
+      triggerDownload(dossierContent, `synapse_dossier_${safeTopic}.md`, 'text/markdown;charset=utf-8');
+    } catch (err) {
+      alert('Failed to export dossier: ' + err.message);
+    } finally {
+      setDossierLoading(false);
+    }
+  };
+
   const handleCopyReport = () => {
     if (!results.writer) return;
     navigator.clipboard.writeText(results.writer);
     setCopySuccess(true);
     setTimeout(() => setCopySuccess(false), 2500);
   };
+
+  const hasEvidence = evidenceClaims && evidenceClaims.totalClaims > 0;
 
   return (
     <div className="lab-results-hub">
@@ -94,6 +199,16 @@ export default function Results({ results, topic }) {
           onClick={() => setActiveTab('report')}
         >
           📝 Executive Report
+        </button>
+
+        <button
+          className={`hub-tab${activeTab === 'evidence' ? ' active' : ''}`}
+          onClick={() => setActiveTab('evidence')}
+        >
+          🔬 Evidence & Claims
+          {hasEvidence && (
+            <span className="hub-tab-count">{evidenceClaims.totalClaims}</span>
+          )}
         </button>
 
         <button
@@ -164,8 +279,18 @@ export default function Results({ results, topic }) {
                   <button
                     className="action-btn md-btn"
                     onClick={handleDownloadMarkdown}
+                    disabled={mdLoading}
                   >
-                    📝 Download Markdown (.md)
+                    📝 {mdLoading ? 'Generating Markdown…' : 'Download Markdown (.md)'}
+                  </button>
+
+                  <button
+                    className="action-btn dossier-btn"
+                    onClick={handleExportDossier}
+                    disabled={dossierLoading}
+                    title="Export comprehensive research dossier with report, plan, claims lineage, and source quality"
+                  >
+                    📁 {dossierLoading ? 'Compiling Dossier…' : 'Export Full Dossier (.md)'}
                   </button>
                 </div>
               </>
@@ -178,11 +303,34 @@ export default function Results({ results, topic }) {
           </div>
         )}
 
+        {/* EVIDENCE & CLAIMS TAB */}
+        {activeTab === 'evidence' && (
+          <div>
+            {hasEvidence ? (
+              <EvidencePanel
+                evidenceClaims={evidenceClaims}
+                sourceProfiles={sourceProfiles}
+              />
+            ) : (
+              <div className="tab-pending-state">
+                <span className="pending-icon">🔬</span>
+                <p>Evidence claims will appear after the Writer and Verification agents complete their analysis...</p>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* WEB NEWS & SOURCES TAB */}
         {activeTab === 'sources' && (
           <div>
-            {results.search ? (
-              <NewsResources rawText={results.search} />
+            {results.search || (results.sourceQualityProfiles && results.sourceQualityProfiles.length > 0) ? (
+              <NewsResources
+                rawText={results.search}
+                sourceProfiles={results.sourceQualityProfiles}
+                sourceQualitySummary={results.sourceQualitySummary}
+                failedSources={results.failedSources || []}
+                degradedModes={results.degradedModes || []}
+              />
             ) : (
               <div className="tab-pending-state">
                 <span className="pending-icon">🔍</span>
@@ -215,6 +363,50 @@ export default function Results({ results, topic }) {
         {/* TELEMETRY LOGS TAB */}
         {activeTab === 'telemetry' && (
           <div className="telemetry-wrapper">
+            <AgentTelemetryView results={results} />
+
+            <div className="telemetry-raw-logs-divider">
+              <h4>🔍 Raw Diagnostic Payloads & Logs</h4>
+            </div>
+
+            <ExpandablePanel
+              label="Structured Research Plan (Planner Agent)"
+              agentLabel="Research Planner Output"
+              content={results.planner}
+            />
+
+            <ExpandablePanel
+              label="Concurrent Subtasks & Evidence Summary"
+              agentLabel="Subtasks Execution Telemetry"
+              content={results.evidence}
+            />
+
+            {results.failedSources && results.failedSources.length > 0 && (
+              <ExpandablePanel
+                label={`Fault Tolerance Audit: Skipped Inaccessible Sources (${results.failedSources.length})`}
+                agentLabel="Transparent Source Failures (Never Fabricated, Gracefully Handled)"
+                content={JSON.stringify(results.failedSources, null, 2)}
+              />
+            )}
+
+            {results.degradedModes && results.degradedModes.length > 0 && (
+              <ExpandablePanel
+                label={`Resilience Degradation Modes Active (${results.degradedModes.length})`}
+                agentLabel="Active Graceful Degradation Modes"
+                content={JSON.stringify(results.degradedModes, null, 2)}
+              />
+            )}
+
+            <ExpandablePanel
+              label="Deterministic Source Quality & Freshness Profiles"
+              agentLabel="Source Quality Profiles"
+              content={
+                results.sourceQualityProfiles && results.sourceQualityProfiles.length > 0
+                  ? JSON.stringify(results.sourceQualityProfiles, null, 2)
+                  : null
+              }
+            />
+
             <ExpandablePanel
               label="Raw Search Agent Output Payload"
               agentLabel="Search Agent Output"

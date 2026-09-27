@@ -96,140 +96,116 @@ Multi Agent AI Research System/
 
 ## 🚀 Getting Started
 
-### Prerequisites
-
-- **Python 3.10+** installed on your system.
-- **Node.js 18+** & `npm` installed.
-- *(Optional)* **Ollama** installed locally if running offline models (`llama3.2`).
+SYNAPSE AI supports two distinct execution modes:
+1. **Local Development Mode**: Fast iteration with local SQLite storage, automatic history import, and live React HMR.
+2. **Production Deployment Mode**: Hardened multi-stage container running as non-root `appuser`, managed PostgreSQL database, forward Alembic migrations, and health/readiness observation probes.
 
 ---
 
-### 1. Backend Setup
+### 💻 Local Development Workflow
 
-1. **Clone the repository**:
+#### 1. Backend Setup
+1. **Clone the repository and enter directory**:
    ```bash
    git clone https://github.com/Sayalij1609/Multi-Agent-Research-System.git
    cd "Multi Agent AI Research System"
    ```
 
-2. **Create and activate a Python virtual environment**:
+2. **Create and activate a virtual environment**:
    - **Windows**:
      ```powershell
      python -m venv .venv
      .venv\Scripts\activate
      ```
-   - **macOS / Linux**:
+   - **Linux / macOS**:
      ```bash
      python3 -m venv .venv
      source .venv/bin/activate
      ```
 
-3. **Install Python dependencies**:
+3. **Install dependencies**:
    ```bash
    pip install -r requirements.txt
    ```
 
-4. **Start the FastAPI backend server**:
+4. **Configure Environment Variables**:
+   Copy `.env.example` to `.env`:
    ```bash
-   uvicorn app:app --host 127.0.0.1 --port 5000 --reload
+   cp .env.example .env
    ```
-   The backend API will be available at `http://127.0.0.1:5000`.
+   Add your `GROQ_API_KEY`. (If `DATABASE_URL` is omitted, the system defaults to local SQLite `sqlite:///./synapse.db`).
 
----
+5. **Run Database Migrations**:
+   ```bash
+   python migrate.py
+   ```
 
-### 2. Frontend Setup
+6. **Start the FastAPI Backend**:
+   ```bash
+   uvicorn app:app --host 127.0.0.1 --port 8000 --reload
+   ```
 
-1. **Navigate to the `frontend` directory**:
+#### 2. Frontend Development Setup
+1. In a separate terminal, navigate to `frontend`:
    ```bash
    cd frontend
-   ```
-
-2. **Install Node.js dependencies**:
-   ```bash
    npm install
-   ```
-
-3. **Start the Vite development server**:
-   ```bash
    npm run dev
    ```
-
-4. Open your browser at **`http://localhost:5173`** to access the application.
+2. Open your browser at **`http://localhost:5173`**.
 
 ---
 
-## 💻 Building for Production
+### 🏭 Production Deployment Architecture
 
-To create a production build of the React frontend:
+#### 1. Production Highlights
+- **Non-Root Container User**: Runs strictly under `appuser` (UID 1001, GID 1001).
+- **Zero Hardcoded Secrets**: Secrets injected strictly via runtime environment variables.
+- **Relational PostgreSQL Support**: Connects to production PostgreSQL via `DATABASE_URL` or discrete `POSTGRES_*` variables with automatic connection pooling (`DB_POOL_SIZE`, `DB_MAX_OVERFLOW`).
+- **Liveness & Readiness Probes**:
+  - `GET /health`: Lightweight liveness check for container runtimes.
+  - `GET /ready`: Deep readiness verification (executes `SELECT 1` on PostgreSQL and verifies provider credentials).
+- **Structured Application Logging**: JSON-formatted log streams with automated credential and token masking (`[REDACTED]`).
+- **Proper CORS Configuration**: Domain-whitelisted via `ALLOWED_ORIGINS`.
+- **Safe Database Migrations**: Pre-deploy migrations executed via `python migrate.py` / `alembic upgrade head`.
+- **Graceful Shutdown & Request Timeouts**: Handles Linux `SIGTERM` cleanly with 30s connection draining; protects against runaway requests with `REQUEST_TIMEOUT_SECONDS=120`.
 
+#### 2. Docker Compose Deployment (Recommended for On-Prem / VM)
 ```bash
-cd frontend
-npm run build
+# 1. Set environment secrets in .env
+cp .env.example .env
+# Edit .env with your actual GROQ_API_KEY and secure JWT_SECRET_KEY
+
+# 2. Build and launch full production stack (FastAPI + PostgreSQL 16)
+docker compose up -d --build
+
+# 3. Check health and readiness probes
+curl http://localhost:8000/health
+curl http://localhost:8000/ready
 ```
 
-This generates an optimized static bundle in `frontend/dist/`.
+#### 3. Render Cloud Deployment
+SYNAPSE AI includes a production [`render.yaml`](render.yaml) Blueprint that provisions:
+1. **Web Service**: Multi-stage Docker container running as non-root `appuser`.
+2. **Managed Database**: Render PostgreSQL instance with persistent storage.
+3. **Safe Pre-Deploy Migration**: `preDeployCommand: "python migrate.py"`.
+4. **Automated Secret Generation**: Generates 256-bit `JWT_SECRET_KEY` automatically.
+
+To deploy on Render:
+1. Connect your repository to Render.
+2. Select **New > Blueprint** and choose `render.yaml`.
+3. Add your `GROQ_API_KEY` under Environment Variables.
+4. Click **Apply Blueprint**.
 
 ---
 
-## ⚙️ Configuration & Options
+## 🛠️ Technology Stack & Resource Allocation
 
-### Switching LLM Providers
-
-In [`agents.py`](agents.py), you can configure the underlying LLM engine:
-
-- **Local Ollama** (Free & 100% On-Device):
-  ```python
-  from langchain_ollama import ChatOllama
-  llm = ChatOllama(model="llama3.2", temperature=0)
-  ```
-
-- **Groq API / OpenAI / Anthropic**:
-  Set your API key in environment variables or `.env` and initialize the corresponding LangChain LLM class.
-
----
-
-## 🛠️ Technology Stack
-
-| Component | Technology |
-|---|---|
-| **Frontend** | React 19, Vite, Vanilla CSS3 (Custom Tokens) |
-| **Backend** | FastAPI, Uvicorn, Pydantic |
-| **Agent Pipeline** | LangChain, LangGraph |
-| **Web Search** | DuckDuckGo (`ddgs`) |
-| **Web Scraping** | BeautifulSoup4, Requests |
-| **Document Export** | `python-docx` (Word), `fpdf2` (PDF) |
-
----
-
-## 🐳 Docker Deployment
-
-SYNAPSE AI is fully containerized with a **multi-stage Docker build** — a Node.js stage builds the React frontend, and the final Python image serves everything from a single container.
-
-```bash
-# Build the image
-docker build -t synapse-ai .
-
-# Run the container
-docker run -d -p 8000:8000 -e GROQ_API_KEY=your_key_here synapse-ai
-```
-
-Open **[http://localhost:8000](http://localhost:8000)** — the FastAPI backend serves both the API and the React SPA.
-
-> 📖 For the full Docker guide (architecture diagrams, Docker Compose, environment variables, cloud deployment, and troubleshooting), see **[DOCKER.md](DOCKER.md)**.
-
----
-
-## ☁️ Cloud Deployment
-
-SYNAPSE AI is production-ready for cloud platforms:
-
-| Platform | Method | Config File |
-|---|---|---|
-| **Render** | Auto-detects `Dockerfile` or uses Blueprint | [`render.yaml`](render.yaml) |
-| **Railway** | `railway init && railway up` | Auto-detected |
-| **Fly.io** | `fly launch && fly deploy` | Auto-detected |
-
-> See the full [Deployment Guide](DOCKER.md#deploying-to-cloud-platforms) for step-by-step instructions.
+| Component | Technology | Recommended Limit | Reservation |
+|---|---|---|---|
+| **Web Service (`synapse_app`)** | FastAPI, React 19, Uvicorn, LangGraph | 2048 MB RAM / 2.0 CPU | 512 MB RAM / 0.5 CPU |
+| **Relational Database (`synapse_db`)** | PostgreSQL 16 Alpine, SQLAlchemy 2, Alembic | 1024 MB RAM / 1.0 CPU | 256 MB RAM / 0.2 CPU |
+| **Vector Engine** | ChromaDB, Sentence-Transformers | Included in App memory | Included in App memory |
 
 ---
 

@@ -24,6 +24,10 @@ desktop.ini
 
 # Runtime data
 research_history.json
+chroma_db/
+.pytest_cache/
+synapse.db
+*.db
 
 # Environment
 .env

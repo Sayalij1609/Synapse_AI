@@ -4,6 +4,9 @@ export default function Topbar({
   currentView,
   onSwitchView,
   onOpenHistory,
+  currentUser,
+  onOpenAuth,
+  onLogout,
 }) {
   return (
     <header className="topbar">
@@ -37,10 +40,18 @@ export default function Topbar({
           </button>
 
           <button
+            className={`topbar-nav-tab${currentView === 'workspace' ? ' active' : ''}`}
+            onClick={() => onSwitchView('workspace')}
+          >
+            <span className="nav-tab-icon">📁</span> Workspace
+            {currentUser && <span className="nav-user-indicator">●</span>}
+          </button>
+
+          <button
             className="topbar-nav-tab"
             onClick={onOpenHistory}
           >
-            <span className="nav-tab-icon">📜</span> History Archive
+            <span className="nav-tab-icon">📜</span> History
           </button>
         </nav>
       </div>
@@ -51,20 +62,45 @@ export default function Topbar({
           Autonomous Engine · Active
         </div>
 
-        {currentView === 'home' ? (
-          <button
-            className="topbar-action-btn"
-            onClick={() => onSwitchView('dashboard')}
-          >
-            Launch Lab 🚀
-          </button>
+        {currentUser ? (
+          <div className="topbar-auth-group">
+            <button
+              className="topbar-user-pill"
+              onClick={() => onSwitchView('workspace')}
+              title={`Logged in as ${currentUser.email}`}
+            >
+              <span className="user-pill-avatar">
+                {(currentUser.full_name || currentUser.username || currentUser.email || 'U')[0].toUpperCase()}
+              </span>
+              <span className="user-pill-name">
+                {currentUser.full_name || currentUser.username || currentUser.email.split('@')[0]}
+              </span>
+            </button>
+            <button
+              className="topbar-auth-btn signout-btn"
+              onClick={onLogout}
+              title="Sign Out"
+            >
+              Sign Out
+            </button>
+          </div>
         ) : (
-          <button
-            className="topbar-action-btn secondary-action"
-            onClick={onOpenHistory}
-          >
-            📜 History
-          </button>
+          <div className="topbar-auth-group">
+            <button
+              className="topbar-auth-btn signin-btn"
+              onClick={onOpenAuth}
+            >
+              Sign In 🔐
+            </button>
+            {currentView === 'home' && (
+              <button
+                className="topbar-action-btn"
+                onClick={() => onSwitchView('dashboard')}
+              >
+                Launch Lab 🚀
+              </button>
+            )}
+          </div>
         )}
       </div>
     </header>
