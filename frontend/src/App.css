@@ -3858,12 +3858,74 @@ body {
   padding: 0.25rem 0.6rem;
   border-radius: 6px;
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
-.subtask-status-badge.completed { background: rgba(0, 184, 148, 0.12); color: #00B894; }
-.subtask-status-badge.in_progress { background: rgba(9, 132, 227, 0.12); color: #0984E3; }
-.subtask-status-badge.pending { background: rgba(121, 108, 152, 0.12); color: var(--text-muted); }
-.subtask-status-badge.failed { background: rgba(239, 82, 110, 0.12); color: #EF526E; }
+.subtask-status-badge.completed { background: rgba(0, 184, 148, 0.12); color: #00B894; border: 1px solid rgba(0, 184, 148, 0.25); }
+.subtask-status-badge.in_progress,
+.subtask-status-badge.running { background: rgba(9, 132, 227, 0.12); color: #0984E3; border: 1px solid rgba(9, 132, 227, 0.25); }
+.subtask-status-badge.pending { background: rgba(121, 108, 152, 0.12); color: var(--text-muted); border: 1px solid rgba(121, 108, 152, 0.2); }
+.subtask-status-badge.failed { background: rgba(239, 82, 110, 0.12); color: #EF526E; border: 1px solid rgba(239, 82, 110, 0.25); }
+.subtask-status-badge.degraded { background: rgba(243, 156, 18, 0.12); color: #f39c12; border: 1px solid rgba(243, 156, 18, 0.25); }
+
+.status-spinner {
+  width: 10px;
+  height: 10px;
+  border: 2px solid rgba(9, 132, 227, 0.3);
+  border-top-color: #0984E3;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+
+.subtask-live-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+}
+
+.stat-chip {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.stat-chip.discovered {
+  background: rgba(108, 92, 231, 0.1);
+  color: #6C5CE7;
+  border: 1px solid rgba(108, 92, 231, 0.2);
+}
+
+.stat-chip.extracted {
+  background: rgba(0, 184, 148, 0.1);
+  color: #00B894;
+  border: 1px solid rgba(0, 184, 148, 0.2);
+}
+
+.planner-subtask-card.running,
+.planner-subtask-card.in_progress {
+  border-left: 3px solid #0984E3;
+  background: linear-gradient(90deg, rgba(9, 132, 227, 0.04) 0%, var(--bg-primary) 100%);
+}
+
+.planner-subtask-card.completed {
+  border-left: 3px solid #00B894;
+}
+
+.planner-subtask-card.failed {
+  border-left: 3px solid #EF526E;
+}
+
+.planner-subtask-card.degraded {
+  border-left: 3px solid #f39c12;
+}
 
 .planner-query-grid {
   display: grid;

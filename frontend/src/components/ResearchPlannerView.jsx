@@ -9,6 +9,23 @@ import React, { useState } from 'react';
  *
  * Data comes from the backend via SSE; no business logic in this component.
  */
+function statusLabel(status) {
+  switch (status) {
+    case 'completed':
+      return 'Completed';
+    case 'running':
+    case 'in_progress':
+      return 'In Progress';
+    case 'failed':
+      return 'Failed';
+    case 'degraded':
+      return 'Degraded';
+    case 'pending':
+    default:
+      return 'Pending';
+  }
+}
+
 export default function ResearchPlannerView({ researchPlan, isRunning }) {
   const [expanded, setExpanded] = useState(true);
 
@@ -82,7 +99,7 @@ export default function ResearchPlannerView({ researchPlan, isRunning }) {
                   </div>
                   <div className="planner-subtask-list">
                     {subtasks.map((st, idx) => (
-                      <div key={st.subtask_id || idx} className="planner-subtask-card">
+                      <div key={st.subtask_id || idx} className={`planner-subtask-card ${st.status || 'pending'}`}>
                         <div className="subtask-index">{idx + 1}</div>
                         <div className="subtask-content">
                           <div className="subtask-question">
@@ -95,9 +112,21 @@ export default function ResearchPlannerView({ researchPlan, isRunning }) {
                               ))}
                             </div>
                           )}
+                          {/* Live stats when running or completed */}
+                          {(st.discovered_count > 0 || st.extracted_count > 0) && (
+                            <div className="subtask-live-stats">
+                              {st.discovered_count > 0 && (
+                                <span className="stat-chip discovered">🔗 {st.discovered_count} sources</span>
+                              )}
+                              {st.extracted_count > 0 && (
+                                <span className="stat-chip extracted">📄 {st.extracted_count} docs</span>
+                              )}
+                            </div>
+                          )}
                         </div>
                         <div className={`subtask-status-badge ${st.status || 'pending'}`}>
-                          {st.status || 'pending'}
+                          {(st.status === 'running' || st.status === 'in_progress') && <span className="status-spinner" />}
+                          {statusLabel(st.status)}
                         </div>
                       </div>
                     ))}

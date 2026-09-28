@@ -207,6 +207,26 @@ export default function useResearch() {
           status: 'running',
           extractedDocs: (d.extracted_count || 0),
         });
+
+        // Update individual subtask status in the research plan view
+        if (d.subtask_id || d.question) {
+          setResearchPlan(prev => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              subtasks: (prev.subtasks || []).map((st, idx) =>
+                (st.subtask_id === d.subtask_id || st.question === d.question || `subtask_${idx + 1}` === d.subtask_id)
+                  ? {
+                      ...st,
+                      status: d.status || 'completed',
+                      discovered_count: (d.discovered_count !== undefined ? d.discovered_count : st.discovered_count),
+                      extracted_count: (d.extracted_count !== undefined ? d.extracted_count : st.extracted_count),
+                    }
+                  : st
+              ),
+            };
+          });
+        }
         return;
       }
 
@@ -214,6 +234,15 @@ export default function useResearch() {
       if (d.step === 'subtasks' && d.status === 'running') {
         updateLiveAgent('Search', { status: 'running', total: d.total });
         updateLiveAgent('Reader', { status: 'running' });
+
+        // Mark all subtasks as 'running' in the planner view
+        setResearchPlan(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            subtasks: (prev.subtasks || []).map(st => ({ ...st, status: 'running' })),
+          };
+        });
         return;
       }
 

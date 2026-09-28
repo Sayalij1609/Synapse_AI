@@ -61,11 +61,11 @@ class ResearchPlan(BaseModel):
     )
     sub_questions: List[str] = Field(
         default_factory=list,
-        description="3 to 5 targeted sub-questions addressing distinct dimensions of the topic."
+        description="5 to 8 targeted sub-questions addressing distinct dimensions of the topic."
     )
     search_queries: List[str] = Field(
         default_factory=list,
-        description="3 to 5 focused, non-redundant search queries optimized for live web search."
+        description="5 to 8 focused, non-redundant search queries optimized for live web search."
     )
     subtasks: List[SubtaskItem] = Field(
         default_factory=list,
@@ -166,7 +166,7 @@ def get_planner_llm(model: Optional[str] = None) -> ChatGroq:
         or "qwen/qwen3.8-27b"
     )
     temperature = float(os.getenv("PLANNER_TEMPERATURE", "0.1"))
-    max_tokens = int(os.getenv("PLANNER_MAX_TOKENS", "500"))
+    max_tokens = int(os.getenv("PLANNER_MAX_TOKENS", "1500"))
 
     logger.info("Initializing Planner LLM (model=%s, temp=%.2f, max_tokens=%d)", model_name, temperature, max_tokens)
     return ChatGroq(
@@ -190,11 +190,15 @@ def create_fallback_plan(query: str) -> ResearchPlan:
         sub_questions=[
             f"What is the current status and foundational background of '{clean_query}'?",
             f"What are the major challenges, breakthroughs, and real-world impacts of '{clean_query}'?",
+            f"Who are the key players, organizations, and stakeholders involved in '{clean_query}'?",
+            f"What are the economic, social, and geopolitical implications of '{clean_query}'?",
             f"What are the future projections and strategic recommendations for '{clean_query}'?",
         ],
         search_queries=[
             f"{clean_query} overview current status",
             f"{clean_query} major challenges breakthroughs",
+            f"{clean_query} key players organizations involved",
+            f"{clean_query} economic social impact analysis",
             f"{clean_query} future trends market impact",
         ],
         required_source_types=["official", "academic", "news", "industry"],
@@ -221,10 +225,11 @@ Your job is to analyze the user's research request and decompose it into a struc
 
 Guidelines:
 1. Identify the core topic and formulate an overarching, analytical research objective.
-2. Generate 3 to 5 targeted sub-questions covering different dimensions (fundamentals, current state, challenges, future outlook).
-3. Generate 3 to 5 distinct, focused search queries optimized for search engines (DuckDuckGo).
+2. Generate 5 to 8 targeted sub-questions covering different dimensions (fundamentals, current state, challenges, breakthroughs, key players, economic/social impact, future outlook, strategic recommendations).
+3. Generate 5 to 8 distinct, focused search queries optimized for search engines (DuckDuckGo).
    - Ensure queries are diverse and non-redundant.
    - Avoid generic single-word queries; use targeted phrases and keywords.
+   - Cover multiple angles: who, what, when, where, why, how.
 4. Specify authoritative source types (e.g., official, academic, news, industry).
 5. DO NOT generate the final research report or answer the questions. Only formulate the research plan.
 """
@@ -278,8 +283,8 @@ Guidelines:
 {{
   "main_topic": "string",
   "research_objective": "string",
-  "sub_questions": ["string", "string", "string"],
-  "search_queries": ["string", "string", "string"],
+  "sub_questions": ["string", "string", "string", "string", "string"],
+  "search_queries": ["string", "string", "string", "string", "string"],
   "required_source_types": ["official", "academic", "news", "industry"]
 }}
 Do not include any explanation or markdown formatting outside the JSON."""

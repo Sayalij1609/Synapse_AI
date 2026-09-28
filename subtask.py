@@ -139,6 +139,7 @@ def execute_subtask(
     subtask: Subtask,
     url_registry: Optional[URLRegistry] = None,
     timeout: int = SUBTASK_TIMEOUT_SECONDS,
+    on_subtask_progress: Optional[Callable[[Subtask], None]] = None,
 ) -> Subtask:
     """
     Execute a single research subtask with production-grade fault tolerance:
@@ -154,6 +155,12 @@ def execute_subtask(
     """
     subtask.status = "running"
     logger.info("Starting subtask [%s]: '%s'", subtask.subtask_id, subtask.question)
+    if on_subtask_progress:
+        try:
+            on_subtask_progress(subtask)
+        except Exception:
+            pass
+
     registry = url_registry or URLRegistry()
 
     start_time = time.time()
@@ -196,6 +203,11 @@ def execute_subtask(
             "Subtask [%s] discovered %d unique sources across queries",
             subtask.subtask_id, len(discovered)
         )
+        if on_subtask_progress:
+            try:
+                on_subtask_progress(subtask)
+            except Exception:
+                pass
 
         # 2. Extract Document with Candidate Failover
         extracted: List[ExtractedDocument] = []
@@ -321,7 +333,7 @@ def execute_subtasks_concurrently(
 
     with ThreadPoolExecutor(max_workers=concurrency, thread_name_prefix="synapse-subtask") as executor:
         future_to_subtask = {
-            executor.submit(execute_subtask, st, registry, timeout): st
+            executor.submit(execute_subtask, st, registry, timeout, on_subtask_progress): st
             for st in subtasks
         }
 
