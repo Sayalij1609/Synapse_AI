@@ -1289,8 +1289,30 @@ def export_to_pdf(report: StructuredReport) -> bytes:
         for s in report.sources:
             src_num_map[s.source_id] = s.source_number
 
-        claim_data = [["ID", "Claim Statement", "Status", "Confidence", "Citations"]]
-        for c in report.claims[:15]:
+        # Column widths for A4 (190mm usable)
+        col_w = [12, 88, 26, 22, 32]  # ID, Claim, Status, Conf, Citations
+        headers = ["ID", "Claim Statement", "Status", "Conf.", "Citations"]
+
+        # ── Table Header Row ──
+        pdf.set_font("Helvetica", "B", 8)
+        pdf.set_fill_color(43, 37, 84)   # Deep Indigo header
+        pdf.set_text_color(255, 255, 255) # White header text
+        pdf.set_draw_color(43, 37, 84)
+        for i, h in enumerate(headers):
+            pdf.cell(col_w[i], 7, h, border=1, align="C", fill=True)
+        pdf.ln()
+
+        # ── Table Body Rows ──
+        pdf.set_font("Helvetica", "", 8)
+        pdf.set_draw_color(200, 200, 210)
+
+        for r_idx, c in enumerate(report.claims[:20]):
+            # Alternating row fill
+            if r_idx % 2 == 0:
+                pdf.set_fill_color(248, 248, 252)  # Light lavender
+            else:
+                pdf.set_fill_color(255, 255, 255)   # White
+
             # Resolve citation tags
             cit_tags = []
             for sid in c.supporting_source_ids:
@@ -1302,20 +1324,44 @@ def export_to_pdf(report: StructuredReport) -> bytes:
                 cit_tags.append(report.inline_citations[c.claim_id])
             cit_str = ", ".join(sorted(list(set(cit_tags)))) if cit_tags else "[—]"
 
-            claim_data.append([
-                c.claim_id,
-                _sanitize_pdf_latin1(c.text[:100] + ("..." if len(c.text) > 100 else "")),
-                c.status.capitalize(),
-                f"{int(c.confidence * 100)}%",
-                cit_str,
-            ])
+            # Row height tracking via multi_cell
+            x_start = pdf.get_x()
+            y_start = pdf.get_y()
 
-        pdf.set_font("Helvetica", "", 8.5)
-        with pdf.table(col_widths=(18, 96, 26, 22, 26), text_align=("C", "L", "C", "C", "C")) as table:
-            for r_idx, row in enumerate(claim_data):
-                row_cells = table.row()
-                for datum in row:
-                    row_cells.cell(datum)
+            # ID cell
+            pdf.set_text_color(80, 80, 100)
+            pdf.cell(col_w[0], 6, c.claim_id, border="LB", fill=True, align="C")
+
+            # Claim text cell
+            pdf.set_text_color(30, 41, 59)
+            claim_text = _sanitize_pdf_latin1(c.text[:110] + ("..." if len(c.text) > 110 else ""))
+            pdf.cell(col_w[1], 6, claim_text, border="B", fill=True)
+
+            # Status cell — color-coded
+            status_lower = c.status.lower()
+            if status_lower == "grounded":
+                pdf.set_text_color(5, 150, 105)   # Green
+            elif status_lower == "unsupported":
+                pdf.set_text_color(220, 38, 38)    # Red
+            else:
+                pdf.set_text_color(217, 119, 6)    # Amber
+            pdf.cell(col_w[2], 6, c.status.capitalize(), border="B", fill=True, align="C")
+
+            # Confidence cell
+            conf_pct = int(c.confidence * 100)
+            if conf_pct >= 80:
+                pdf.set_text_color(5, 150, 105)
+            elif conf_pct >= 50:
+                pdf.set_text_color(217, 119, 6)
+            else:
+                pdf.set_text_color(220, 38, 38)
+            pdf.cell(col_w[3], 6, f"{conf_pct}%", border="B", fill=True, align="C")
+
+            # Citations cell
+            pdf.set_text_color(80, 80, 100)
+            pdf.cell(col_w[4], 6, cit_str, border="RB", fill=True, align="C")
+            pdf.ln()
+
         pdf.ln(6)
 
     # 6. Authoritative Sources Table with Clickable URLs
@@ -1325,23 +1371,50 @@ def export_to_pdf(report: StructuredReport) -> bytes:
         pdf.cell(0, 7, "6. Authoritative Sources & Reference Catalog")
         pdf.ln(7)
 
-        for s in report.sources:
-            pdf.set_font("Helvetica", "B", 9)
-            pdf.set_text_color(43, 37, 84)
-            pdf.cell(10, 5, f"[{s.source_number}]")
+        # Table header
+        src_col_w = [10, 80, 40, 25, 25]  # #, Title, Domain, Type, Freshness
+        src_headers = ["#", "Title / URL", "Domain", "Type", "Freshness"]
 
-            # Clickable URL Link
-            pdf.set_text_color(37, 99, 235)  # Link blue
-            safe_title = _sanitize_pdf_latin1(s.title[:65])
-            if s.url:
-                pdf.cell(130, 5, safe_title, link=s.url)
+        pdf.set_font("Helvetica", "B", 8)
+        pdf.set_fill_color(43, 37, 84)
+        pdf.set_text_color(255, 255, 255)
+        pdf.set_draw_color(43, 37, 84)
+        for i, h in enumerate(src_headers):
+            pdf.cell(src_col_w[i], 7, h, border=1, align="C", fill=True)
+        pdf.ln()
+
+        # Table body
+        pdf.set_draw_color(200, 200, 210)
+        for idx, s in enumerate(report.sources):
+            if idx % 2 == 0:
+                pdf.set_fill_color(248, 248, 252)
             else:
-                pdf.cell(130, 5, safe_title)
+                pdf.set_fill_color(255, 255, 255)
 
+            # Source number
+            pdf.set_font("Helvetica", "B", 8)
+            pdf.set_text_color(43, 37, 84)
+            pdf.cell(src_col_w[0], 6, f"[{s.source_number}]", border="LB", fill=True, align="C")
+
+            # Title with clickable link
             pdf.set_font("Helvetica", "", 8)
-            pdf.set_text_color(120, 120, 140)
-            pdf.cell(0, 5, f"({s.domain} | {s.source_type} | {s.freshness})", align="R")
-            pdf.ln(5)
+            pdf.set_text_color(37, 99, 235)
+            safe_title = _sanitize_pdf_latin1(s.title[:55])
+            if s.url:
+                pdf.cell(src_col_w[1], 6, safe_title, border="B", fill=True, link=s.url)
+            else:
+                pdf.cell(src_col_w[1], 6, safe_title, border="B", fill=True)
+
+            # Domain
+            pdf.set_text_color(80, 80, 100)
+            pdf.cell(src_col_w[2], 6, _sanitize_pdf_latin1(str(s.domain or "—")[:28]), border="B", fill=True, align="C")
+
+            # Type
+            pdf.cell(src_col_w[3], 6, _sanitize_pdf_latin1(str(s.source_type or "—")[:16]), border="B", fill=True, align="C")
+
+            # Freshness
+            pdf.cell(src_col_w[4], 6, _sanitize_pdf_latin1(str(s.freshness or "—")[:14]), border="RB", fill=True, align="C")
+            pdf.ln()
 
         pdf.ln(6)
 

@@ -209,13 +209,22 @@ def evidence_collection_node(state: ResearchState) -> Dict[str, Any]:
     - Enforces strict session isolation to prevent cross-research contamination.
     - Semantically retrieves top_k evidence chunks for the research objective and sub-questions.
     - Formats a verified evidence briefing for the Writer Agent.
+    - On re-research iterations, merges new evidence with previously retrieved evidence.
     """
     subtask_results = state.get("subtask_results", [])
     session_id = state.get("session_id") or f"sess_{int(time.time())}_{uuid.uuid4().hex[:8]}"
     topic = state.get("topic", "")
     plan = state.get("plan")
+    iteration = state.get("verification_iteration", 1)
 
-    logger.info("Aggregating and indexing evidence for session '%s' across %d subtasks", session_id, len(subtask_results))
+    # Preserve evidence from previous iterations to prevent content loss
+    previous_evidence = state.get("retrieved_evidence", [])
+    previous_search_results = state.get("search_results", "")
+
+    logger.info(
+        "Aggregating and indexing evidence for session '%s' across %d subtasks (iteration %d, %d prior evidence chunks)",
+        session_id, len(subtask_results), iteration, len(previous_evidence)
+    )
 
     all_discovered = []
     all_extracted = []
@@ -519,12 +528,31 @@ def evidence_collection_node(state: ResearchState) -> Dict[str, Any]:
         len(seen_urls), len(all_extracted), len(indexed_chunks), len(retrieved_chunks), len(all_failed_sources)
     )
 
+    # ─── Merge with previous iteration evidence to prevent content loss ───
+    # On re-research iterations (iteration > 1), merge previous evidence with newly retrieved
+    merged_evidence = ranked_evidence
+    if iteration > 1 and previous_evidence:
+        existing_ids = {ev.get("chunk_id", "") for ev in ranked_evidence if ev.get("chunk_id")}
+        for prev_ev in previous_evidence:
+            if prev_ev.get("chunk_id") and prev_ev["chunk_id"] not in existing_ids:
+                merged_evidence.append(prev_ev)
+                existing_ids.add(prev_ev["chunk_id"])
+        logger.info(
+            "Merged evidence: %d new + %d preserved = %d total chunks",
+            len(ranked_evidence), len(merged_evidence) - len(ranked_evidence), len(merged_evidence)
+        )
+
+    # Merge search results: prepend previous results so writer has full context
+    merged_search_results = combined_search_results
+    if iteration > 1 and previous_search_results:
+        merged_search_results = previous_search_results + "\n-----------------------------\n" + combined_search_results
+
     return {
         "session_id": session_id,
-        "search_results": combined_search_results,
+        "search_results": merged_search_results,
         "scraped_content": combined_scraped_content,
         "evidence_briefing": evidence_briefing + "\n\n" + quality_briefing,
-        "retrieved_evidence": ranked_evidence,
+        "retrieved_evidence": merged_evidence,
         "evidence_summary": evidence_summary,
         "source_quality_profiles": [p.model_dump() for p in quality_report.scored_sources],
         "failed_sources": all_failed_sources,
@@ -553,17 +581,19 @@ def writer_node(state: ResearchState) -> Dict[str, Any]:
     plan = state.get("plan")
     degraded_modes = list(state.get("degraded_modes", []))
     session_id = state.get("session_id") or f"sess_{int(time.time())}_{uuid.uuid4().hex[:8]}"
+    iteration = state.get("verification_iteration", 1)
+    existing_report = state.get("report", "")
 
     telemetry = get_session_telemetry(session_id, topic=topic)
     writer_model = os.getenv("GROQ_WRITER_MODEL", "llama-3.3-70b-versatile")
     writer_rec = telemetry.start_agent_run(
         "Writer",
         model_used=writer_model,
-        input_payload={"topic": topic, "retrieved_evidence_count": len(retrieved_evidence)}
+        input_payload={"topic": topic, "retrieved_evidence_count": len(retrieved_evidence), "iteration": iteration}
     )
     t_writer_start = time.perf_counter()
 
-    logger.info("Executing Citation-Grounded Writer Node for topic: '%s'", topic)
+    logger.info("Executing Citation-Grounded Writer Node for topic: '%s' (iteration %d, %d evidence chunks)", topic, iteration, len(retrieved_evidence))
 
     plan_context = ""
     if plan and isinstance(plan, dict):
@@ -594,10 +624,20 @@ def writer_node(state: ResearchState) -> Dict[str, Any]:
     # 2. Format Authoritative Evidence Catalog for Writer LLM
     evidence_catalog = format_evidence_catalog_for_writer(sources, evidence_chunks)
 
+    # On re-research iterations, include existing report so writer REFINES rather than regenerates
+    refinement_context = ""
+    if iteration > 1 and existing_report:
+        # Trim the existing report to keep within token limits but preserve substance
+        report_excerpt = existing_report[:6000] if len(existing_report) > 6000 else existing_report
+        refinement_context = (
+            f"\n\nPREVIOUS REPORT (from iteration {iteration - 1}) — REFINE AND EXPAND this with new evidence. "
+            f"Do NOT discard existing analysis. Integrate new findings into the existing structure:\n"
+            f"---\n{report_excerpt}\n---\n\n"
+        )
+
     research_payload = (
         f"{plan_context}"
-        f"{evidence_catalog}\n\n"
-        f"VERIFIED SEARCH SUMMARY:\n{search_results}\n"
+        f"{evidence_catalog}\n"
     )
 
     raw_output = ""
@@ -607,7 +647,7 @@ def writer_node(state: ResearchState) -> Dict[str, Any]:
             fallback_chain=writer_chain_fallback,
             input_dict={"topic": topic, "research": research_payload},
             service_name="writer_llm",
-            timeout=90.0,
+            timeout=120.0,
             max_attempts=3
         )
     except Exception as e:
@@ -623,6 +663,9 @@ def writer_node(state: ResearchState) -> Dict[str, Any]:
     key_findings_list = getattr(parsed_res, "key_findings", [])
     thematic_analysis = getattr(parsed_res, "thematic_analysis", [])
     limitations_list = getattr(parsed_res, "limitations", [])
+    background_context = getattr(parsed_res, "background_context", "")
+    comparative_data = getattr(parsed_res, "comparative_data", [])
+    challenges_text = getattr(parsed_res, "challenges", "")
 
     # Resilient fallback: If LLM output was empty, malformed, or yielded 0 valid claims, synthesize grounded claims deterministically
     if not claims and (sources or evidence_chunks):
@@ -634,6 +677,15 @@ def writer_node(state: ResearchState) -> Dict[str, Any]:
             summary = det_summary
         if not conclusion or conclusion.strip().startswith("{"):
             conclusion = det_conclusion
+        # Also pick up thematic analysis and other fields from deterministic synthesis
+        if not thematic_analysis:
+            thematic_analysis = getattr(det_res, "thematic_analysis", [])
+        if not key_findings_list:
+            key_findings_list = getattr(det_res, "key_findings", [])
+        if not objectives_list:
+            objectives_list = getattr(det_res, "objectives", [])
+        if not limitations_list:
+            limitations_list = getattr(det_res, "limitations", [])
         if "deterministic_claims_fallback" not in degraded_modes:
             degraded_modes.append("deterministic_claims_fallback")
 
@@ -650,6 +702,9 @@ def writer_node(state: ResearchState) -> Dict[str, Any]:
         thematic_analysis=thematic_analysis,
         limitations=limitations_list,
         plan=plan,
+        background_context=background_context,
+        comparative_data=comparative_data,
+        challenges=challenges_text,
     )
 
     writer_status = "degraded" if "deterministic_claims_fallback" in degraded_modes else "completed"
@@ -678,6 +733,16 @@ def writer_node(state: ResearchState) -> Dict[str, Any]:
         len(grounded_report.unsupported_claims)
     )
 
+    # Save this cycle's report snapshot for per-cycle viewing
+    cycle_snapshot = {
+        "cycle": iteration,
+        "report": grounded_report.markdown_report,
+        "claims_count": len(grounded_report.claims),
+        "grounded_count": len(grounded_report.grounded_claims),
+        "words_count": words_count,
+        "timestamp": time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime()),
+    }
+
     return {
         "report": grounded_report.markdown_report,
         "claims": [c.model_dump() for c in grounded_report.claims],
@@ -691,6 +756,7 @@ def writer_node(state: ResearchState) -> Dict[str, Any]:
         "research_objectives": objectives_list,
         "research_limitations": limitations_list,
         "degraded_modes": degraded_modes,
+        "report_history": [cycle_snapshot],
         "telemetry": telemetry.to_tree(),
         "agent_runs": [r.to_dict() for r in telemetry.get_runs()],
     }
@@ -898,24 +964,43 @@ def finalize_report_node(state: ResearchState) -> Dict[str, Any]:
     - If MAX_RESEARCH_ITERATIONS reached without complete verification:
       badging unresolved claims explicitly in report text and audit section.
       NEVER fabricates evidence.
+    - Uses the best (most comprehensive) report across all verification cycles.
     """
     claims = state.get("claims", [])
     report = state.get("report", "")
     v_res = state.get("verification_result", {})
     iteration = state.get("verification_iteration", 1)
+    report_history = state.get("report_history", [])
 
     status = v_res.get("status", "PASS")
     confidence = float(v_res.get("confidence", 1.0))
     summary = v_res.get("reasoning_summary", "")
 
-    final_report = report
+    # Use the best (longest, most detailed) report from history
+    # This prevents content loss when later cycles produce thinner output
+    best_report = report
+    if report_history:
+        # Sort by word count descending, pick the longest
+        sorted_history = sorted(report_history, key=lambda h: h.get("words_count", 0), reverse=True)
+        best_in_history = sorted_history[0]
+        current_words = len(report.split()) if report else 0
+
+        if best_in_history.get("words_count", 0) > current_words * 1.3:
+            # Previous cycle had significantly more content — use it
+            logger.info(
+                "Using best report from cycle %d (%d words) instead of current cycle (%d words)",
+                best_in_history.get("cycle", "?"), best_in_history.get("words_count", 0), current_words
+            )
+            best_report = best_in_history.get("report", report)
+
+    final_report = best_report
     unresolved_claims = []
 
     if status != "PASS":
         # Autonomous handling: reached maximum iterations without 100% verification
         # Explicitly badge unresolved claims
         vr_obj = VerificationResult(**v_res)
-        final_report, unresolved_claims = mark_unresolved_claims(claims, report, vr_obj)
+        final_report, unresolved_claims = mark_unresolved_claims(claims, best_report, vr_obj)
         logger.warning(
             "Finalized report with %d unresolved claims after %d verification iterations (zero fabrication).",
             len(unresolved_claims), iteration
@@ -948,7 +1033,7 @@ def finalize_report_node(state: ResearchState) -> Dict[str, Any]:
     return {
         "report": final_report,
         "unresolved_claims": unresolved_claims,
-        "feedback": feedback_text
+        "feedback": feedback_text,
     }
 
 
@@ -1058,6 +1143,7 @@ def run_research_pipeline_stream(topic: str, session_id: Optional[str] = None):
         "subtask_results": [],
         "verification_iteration": 1,
         "verification_history": [],
+        "report_history": [],
     }
 
     # Step 1: Research Planner Agent
@@ -1178,6 +1264,9 @@ def run_research_pipeline_stream(topic: str, session_id: Optional[str] = None):
     # Step 4: Writer Chain
     yield {"step": "writer", "status": "running"}
     writer_output = writer_node(state)
+    # Manually accumulate report_history
+    new_snapshots = writer_output.pop("report_history", [])
+    state.setdefault("report_history", []).extend(new_snapshots)
     state.update(writer_output)
     yield {
         "step": "writer",
@@ -1279,6 +1368,9 @@ def run_research_pipeline_stream(topic: str, session_id: Optional[str] = None):
         # Re-write grounded report
         yield {"step": "writer", "status": "running", "iteration": state["verification_iteration"]}
         writer_output = writer_node(state)
+        # Manually accumulate report_history since we're not using LangGraph reducers
+        new_snapshots = writer_output.pop("report_history", [])
+        state.setdefault("report_history", []).extend(new_snapshots)
         state.update(writer_output)
         yield {
             "step": "writer",

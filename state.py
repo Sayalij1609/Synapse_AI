@@ -31,6 +31,7 @@ class ResearchState(TypedDict, total=False):
     verification_iteration: int
     verification_result: Dict[str, Any]
     verification_history: List[Dict[str, Any]]
+    report_history: Annotated[List[Dict[str, Any]], operator.add]  # Per-cycle report snapshots
     additional_queries: List[str]
     unresolved_claims: List[Dict[str, Any]]
     errors: List[str]

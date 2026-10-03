@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { login, register } from '../api';
+import Icon from './shared/Icon';
 
 export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
-  const [mode, setMode] = useState('login'); // 'login' | 'register'
+  const [mode, setMode] = useState('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
@@ -51,147 +52,167 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div
-        className="modal-container auth-modal"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="modal-card auth-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <div className="auth-header-title">
-            <span className="auth-icon-badge">🔐</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+            <div className="section-icon accent">
+              <Icon name="lock" size={18} />
+            </div>
             <div>
-              <h3>{mode === 'login' ? 'Welcome Back' : 'Create Your Account'}</h3>
-              <p className="auth-subtitle">
+              <div className="modal-title">
+                {mode === 'login' ? 'Welcome Back' : 'Create Account'}
+              </div>
+              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: '2px' }}>
                 {mode === 'login'
-                  ? 'Access your private research projects and reports'
-                  : 'Start organizing your private multi-agent research workspaces'}
-              </p>
+                  ? 'Access your research projects'
+                  : 'Start your research workspace'}
+              </div>
             </div>
           </div>
-          <button className="modal-close-btn" onClick={onClose} aria-label="Close">
-            ✕
+          <button className="modal-close" onClick={onClose}>
+            <Icon name="x" size={18} />
           </button>
         </div>
 
-        <div className="auth-tabs">
-          <button
-            type="button"
-            className={`auth-tab-btn ${mode === 'login' ? 'active' : ''}`}
-            onClick={() => switchMode('login')}
-          >
-            Sign In
-          </button>
-          <button
-            type="button"
-            className={`auth-tab-btn ${mode === 'register' ? 'active' : ''}`}
-            onClick={() => switchMode('register')}
-          >
-            Register
-          </button>
-        </div>
-
-        {errorMsg && <div className="auth-error-banner">{errorMsg}</div>}
-
-        <form onSubmit={handleSubmit} className="auth-form">
-          {mode === 'register' && (
-            <>
-              <div className="auth-input-group">
-                <label>Full Name</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Dr. Alex Mercer"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                />
-              </div>
-              <div className="auth-input-group">
-                <label>Username (optional)</label>
-                <input
-                  type="text"
-                  placeholder="e.g. alex_researcher"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                />
-              </div>
-            </>
-          )}
-
-          <div className="auth-input-group">
-            <label>Email Address</label>
-            <input
-              type="email"
-              required
-              autoFocus
-              placeholder="analyst@domain.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
+        <div className="modal-body">
+          <div className="auth-tabs">
+            <button
+              type="button"
+              className={`auth-tab ${mode === 'login' ? 'active' : ''}`}
+              onClick={() => switchMode('login')}
+            >
+              Sign In
+            </button>
+            <button
+              type="button"
+              className={`auth-tab ${mode === 'register' ? 'active' : ''}`}
+              onClick={() => switchMode('register')}
+            >
+              Register
+            </button>
           </div>
 
-          <div className="auth-input-group">
-            <label>Password</label>
-            <div className="password-input-wrapper">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                required
-                placeholder={mode === 'register' ? 'At least 8 characters' : 'Enter password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-              <button
-                type="button"
-                className="pwd-toggle-btn"
-                onClick={() => setShowPassword(!showPassword)}
-                tabIndex="-1"
-              >
-                {showPassword ? 'Hide' : 'Show'}
-              </button>
-            </div>
+          {errorMsg && <div className="auth-error">{errorMsg}</div>}
+
+          <form onSubmit={handleSubmit} className="auth-form">
             {mode === 'register' && (
-              <span className="auth-hint">
-                Must be at least 8 characters (mixed case, numbers or symbols recommended).
+              <>
+                <div className="auth-field">
+                  <label>Full Name</label>
+                  <input
+                    className="input-field"
+                    type="text"
+                    placeholder="e.g. Dr. Alex Mercer"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                  />
+                </div>
+                <div className="auth-field">
+                  <label>Username (optional)</label>
+                  <input
+                    className="input-field"
+                    type="text"
+                    placeholder="e.g. alex_researcher"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                  />
+                </div>
+              </>
+            )}
+
+            <div className="auth-field">
+              <label>Email Address</label>
+              <input
+                className="input-field"
+                type="email"
+                required
+                autoFocus
+                placeholder="analyst@domain.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+
+            <div className="auth-field">
+              <label>Password</label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  className="input-field"
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  placeholder={mode === 'register' ? 'At least 8 characters' : 'Enter password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  style={{ paddingRight: '60px' }}
+                />
+                <button
+                  type="button"
+                  style={{
+                    position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)',
+                    fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--accent)',
+                    background: 'none', border: 'none', cursor: 'pointer',
+                  }}
+                  onClick={() => setShowPassword(!showPassword)}
+                  tabIndex="-1"
+                >
+                  {showPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
+              {mode === 'register' && (
+                <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-faint)', marginTop: '4px' }}>
+                  At least 8 characters with mixed case, numbers or symbols.
+                </span>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              className="btn btn-primary btn-lg auth-submit"
+              disabled={loading}
+              style={{ width: '100%', marginTop: 'var(--space-2)' }}
+            >
+              {loading ? (
+                <>
+                  <span className="spinner sm" style={{ borderTopColor: '#fff' }} />
+                  Connecting…
+                </>
+              ) : mode === 'login' ? (
+                <>
+                  Sign In <Icon name="arrowRight" size={16} />
+                </>
+              ) : (
+                <>
+                  Create Account <Icon name="arrowRight" size={16} />
+                </>
+              )}
+            </button>
+          </form>
+
+          <div style={{ textAlign: 'center', marginTop: 'var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
+            {mode === 'login' ? (
+              <span>
+                Don't have an account?{' '}
+                <button
+                  type="button"
+                  style={{ background: 'none', border: 'none', color: 'var(--accent)', fontWeight: 600, cursor: 'pointer', fontSize: 'inherit' }}
+                  onClick={() => switchMode('register')}
+                >
+                  Register here
+                </button>
+              </span>
+            ) : (
+              <span>
+                Already have an account?{' '}
+                <button
+                  type="button"
+                  style={{ background: 'none', border: 'none', color: 'var(--accent)', fontWeight: 600, cursor: 'pointer', fontSize: 'inherit' }}
+                  onClick={() => switchMode('login')}
+                >
+                  Sign In
+                </button>
               </span>
             )}
           </div>
-
-          <button
-            type="submit"
-            className="auth-submit-btn"
-            disabled={loading}
-          >
-            {loading ? (
-              <span className="spinner-inline">Connecting...</span>
-            ) : mode === 'login' ? (
-              'Sign In to Workspace 🚀'
-            ) : (
-              'Create Account 🚀'
-            )}
-          </button>
-        </form>
-
-        <div className="auth-footer-toggle">
-          {mode === 'login' ? (
-            <p>
-              Don't have an account yet?{' '}
-              <button
-                type="button"
-                className="auth-link-btn"
-                onClick={() => switchMode('register')}
-              >
-                Register here
-              </button>
-            </p>
-          ) : (
-            <p>
-              Already have an account?{' '}
-              <button
-                type="button"
-                className="auth-link-btn"
-                onClick={() => switchMode('login')}
-              >
-                Sign In
-              </button>
-            </p>
-          )}
         </div>
       </div>
     </div>

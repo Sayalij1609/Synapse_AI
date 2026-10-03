@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { fetchHistory, deleteHistoryEntry } from '../api';
+import Icon from './shared/Icon';
 
 function timeAgo(iso) {
   const diff = (Date.now() - new Date(iso).getTime()) / 1000;
@@ -23,9 +24,7 @@ export default function HistoryModal({ isOpen, onClose, onSelectEntry, refreshSi
   }, []);
 
   useEffect(() => {
-    if (isOpen) {
-      loadHistory();
-    }
+    if (isOpen) loadHistory();
   }, [isOpen, loadHistory, refreshSignal]);
 
   const filteredHistory = useMemo(() => {
@@ -48,71 +47,79 @@ export default function HistoryModal({ isOpen, onClose, onSelectEntry, refreshSi
   if (!isOpen) return null;
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="history-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <div className="modal-title-group">
-            <span className="modal-icon">📜</span>
-            <h3>Research History Archive</h3>
+    <>
+      <div className="history-drawer-overlay" onClick={onClose} />
+      <div className="history-drawer">
+        <div className="drawer-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+            <div className="section-icon cyan">
+              <Icon name="clock" size={18} />
+            </div>
+            <div>
+              <div className="drawer-title">Research History</div>
+              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+                {history.length} saved entries
+              </div>
+            </div>
           </div>
-
-          <button className="modal-close-btn" onClick={onClose}>
-            ✕
+          <button className="modal-close" onClick={onClose}>
+            <Icon name="x" size={18} />
           </button>
         </div>
 
-        <div className="modal-search-bar">
-          <span className="m-search-icon">🔍</span>
-          <input
-            type="text"
-            placeholder="Search past research queries..."
-            value={filterQuery}
-            onChange={(e) => setFilterQuery(e.target.value)}
-          />
+        {/* Search */}
+        <div style={{ padding: 'var(--space-4)', borderBottom: '1px solid var(--border)' }}>
+          <div className="search-input-wrap" style={{ padding: 'var(--space-2) var(--space-3)' }}>
+            <Icon name="search" size={15} />
+            <input
+              type="text"
+              className="search-input"
+              placeholder="Search past research…"
+              value={filterQuery}
+              onChange={(e) => setFilterQuery(e.target.value)}
+              style={{ fontSize: 'var(--text-sm)', padding: 'var(--space-2) 0' }}
+            />
+          </div>
         </div>
 
-        <div className="modal-history-list">
+        {/* List */}
+        <div className="drawer-body">
           {filteredHistory.length === 0 ? (
-            <div className="modal-empty-state">
-              {filterQuery ? 'No matching research queries found.' : 'No research history archived yet.'}
+            <div className="history-empty">
+              <Icon name="clock" size={32} />
+              <p style={{ fontSize: 'var(--text-sm)' }}>
+                {filterQuery ? 'No matching queries found.' : 'No research history yet.'}
+              </p>
             </div>
           ) : (
-            filteredHistory.map((h) => (
-              <div
-                className="modal-history-card"
-                key={h.id}
-                onClick={() => {
-                  onSelectEntry(h.id);
-                  onClose();
-                }}
-              >
-                <div className="m-card-left">
-                  <div className="m-card-title">{h.topic}</div>
-                  <div className="m-card-meta">
-                    <span className="m-tag">Report Archived</span>
-                    <span>{timeAgo(h.timestamp)}</span>
-                  </div>
-                </div>
-
-                <button
-                  className="m-del-btn"
-                  onClick={(e) => handleDelete(e, h.id)}
-                  title="Delete from history"
+            <div className="history-list">
+              {filteredHistory.map((h) => (
+                <div
+                  className="history-item"
+                  key={h.id}
+                  onClick={() => { onSelectEntry(h.id); onClose(); }}
                 >
-                  🗑
-                </button>
-              </div>
-            ))
+                  <div style={{ flex: 1 }}>
+                    <div className="history-topic">{h.topic}</div>
+                    <div className="history-meta">
+                      <span className="chip" style={{ fontSize: '10px', padding: '1px 6px' }}>Archived</span>
+                      <span>{timeAgo(h.timestamp)}</span>
+                    </div>
+                  </div>
+                  <button
+                    className="btn btn-ghost btn-icon"
+                    onClick={(e) => handleDelete(e, h.id)}
+                    title="Delete"
+                    style={{ color: 'var(--text-faint)' }}
+                  >
+                    <Icon name="x" size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
           )}
         </div>
-
-        <div className="modal-footer">
-          <span className="m-count">{history.length} Saved Entries</span>
-          <button className="m-close-footer-btn" onClick={onClose}>
-            Close
-          </button>
-        </div>
       </div>
-    </div>
+    </>
   );
 }

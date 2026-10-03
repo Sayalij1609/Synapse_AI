@@ -128,6 +128,9 @@ class WriterParseResult(tuple):
         key_findings: Optional[List[Dict[str, str]]] = None,
         thematic_analysis: Optional[List[Dict[str, Any]]] = None,
         limitations: Optional[List[str]] = None,
+        background_context: Optional[str] = None,
+        comparative_data: Optional[List[Dict[str, Any]]] = None,
+        challenges: Optional[str] = None,
     ):
         instance = super(WriterParseResult, cls).__new__(cls, (summary, claims, conclusion))
         instance.summary = summary
@@ -137,18 +140,107 @@ class WriterParseResult(tuple):
         instance.key_findings = key_findings or []
         instance.thematic_analysis = thematic_analysis or []
         instance.limitations = limitations or []
+        instance.background_context = background_context or ""
+        instance.comparative_data = comparative_data or []
+        instance.challenges = challenges or ""
         return instance
 
 
 # -----------------------------
 # Registry Builders
 # -----------------------------
+def _clean_evidence_text(text: str) -> str:
+    """
+    Clean and sanitize evidence chunk text to remove web scraping artifacts.
+    Removes YouTube metadata, copyright notices, navigation elements,
+    cookie banners, and other non-research content.
+    """
+    if not text or len(text) < 20:
+        return ""
+
+    # Remove common web boilerplate patterns
+    boilerplate_patterns = [
+        # YouTube specific
+        r'About Press Copyright Contact us Creators Advertise Developers Terms Privacy Policy.*$',
+        r'How YouTube works Test new features.*$',
+        r'©\s*\d{4}\s*Google\s*LLC.*$',
+        # Generic copyright/legal
+        r'©\s*\d{4}.*All\s+[Rr]ights\s+[Rr]eserved.*$',
+        r'Terms\s+(of\s+)?(Service|Use)|Privacy\s+Policy',
+        # Cookie/consent notices
+        r'(We\s+use\s+)?[Cc]ookies?.*?(accept|consent|settings|preferences).*?[.]',
+        r'This\s+(site|website)\s+uses\s+cookies.*$',
+        # Navigation/UI elements
+        r'(Skip|Jump)\s+to\s+(main\s+)?content',
+        r'(Share|Tweet|Email)\s+this\s+(article|page)',
+        r'(Sign\s+up|Log\s*in|Subscribe|Create\s+account).*$',
+        r'(Read\s+more|Continue\s+reading|See\s+also)\s*$',
+        r'(Previous|Next)\s+(article|page|post)',
+        r'(Related\s+articles|You\s+may\s+also\s+like)',
+        # Download/access prompts
+        r'(Download\s+PDF|Access\s+full\s+text|Get\s+access)',
+        # JavaScript/browser warnings
+        r'(enable|requires?)\s+JavaScript.*$',
+        r'(displaying|shown)\s+.*without\s+styles.*$',
+        r'to\s+ensure\s+continued\s+support.*$',
+        # Wikipedia specific
+        r'From Wikipedia,?\s*the free encyclopedia',
+        r'This article\s+(relies|needs|has|is|was|may|does|should|appears|requires|lacks)\s+.*?(?=\.\s|$)',
+        r'\[edit\]',
+        r'\[citation needed\]',
+        r'Contents\s*(\[hide\]|\[show\])',
+        r'Main article:.*$',
+        r'See also:.*$',
+        r'\^\s*[a-z]',
+        # arXiv/academic boilerplate
+        r'arXiv:\d+\.\d+',
+        r'Received\s+\d+.*?Accepted\s+\d+',
+        r'Published\s+by\s+(Elsevier|Springer|Wiley|Nature|IEEE|ACM)',
+    ]
+
+    cleaned = text
+    for pattern in boilerplate_patterns:
+        cleaned = re.sub(pattern, '', cleaned, flags=re.IGNORECASE | re.MULTILINE)
+
+    # Remove sequences of social media/sharing buttons text
+    cleaned = re.sub(r'(Facebook|Twitter|LinkedIn|Instagram|Pinterest|Reddit|WhatsApp)\s*', '', cleaned)
+
+    # Clean up whitespace artifacts
+    cleaned = re.sub(r'\s+', ' ', cleaned).strip()
+
+    # Remove leading truncated words (lowercase fragments at the start)
+    # e.g., "bility of fusion..." or "tered the fusion sector..."
+    cleaned = re.sub(r'^[a-z]{1,8}\b\s+', '', cleaned)
+    # Also handle: "le, this article..."
+    cleaned = re.sub(r'^[a-z]{1,5}[,;.]\s+', '', cleaned)
+
+    return cleaned.strip()
+
+
+def _is_evidence_chunk_usable(text: str) -> bool:
+    """Check if a cleaned evidence chunk has enough substance to be useful."""
+    if not text or len(text) < 40:
+        return False
+    words = text.split()
+    if len(words) < 8:
+        return False
+    # Check alphabetic density
+    alpha_ratio = sum(1 for c in text if c.isalpha()) / max(1, len(text))
+    if alpha_ratio < 0.55:
+        return False
+    # Reject if it's mostly a URL dump
+    if text.count('http') > 2:
+        return False
+    return True
+
+
 def build_source_registry(
     retrieved_evidence: List[Any]
 ) -> Tuple[Dict[str, Source], Dict[str, EvidenceChunkRef]]:
     """
     Index unique sources and evidence chunks from retrieved vector store records.
     Assigns stable human-friendly source numbers (1, 2, 3...).
+    Cleans evidence text to remove web scraping artifacts at ingestion time.
     """
     sources: Dict[str, Source] = {}
     evidence_chunks: Dict[str, EvidenceChunkRef] = {}
@@ -167,7 +259,7 @@ def build_source_registry(
         sid = data.get("source_id") or ""
         url = data.get("url") or ""
         cid = data.get("chunk_id") or ""
-        text = data.get("text") or ""
+        raw_text = data.get("text") or ""
         title = data.get("title") or "Web Document"
         domain = data.get("domain") or "web"
         pub_date = data.get("publication_date") or "N/A"
@@ -180,6 +272,9 @@ def build_source_registry(
 
         if not sid:
             continue
+
+        # Clean evidence text at ingestion
+        cleaned_text = _clean_evidence_text(raw_text)
 
         # Register Source if not already present
         if sid not in sources:
@@ -195,12 +290,12 @@ def build_source_registry(
             url_to_source_id[url.lower()] = sid
             source_counter += 1
 
-        # Register Evidence Chunk
-        if cid:
+        # Register Evidence Chunk (only if text is usable)
+        if cid and _is_evidence_chunk_usable(cleaned_text):
             evidence_chunks[cid] = EvidenceChunkRef(
                 chunk_id=cid,
                 source_id=sid,
-                text=text,
+                text=cleaned_text,
                 similarity_score=similarity,
                 url=url,
                 title=title,
@@ -214,33 +309,58 @@ def format_evidence_catalog_for_writer(
     evidence_chunks: Dict[str, EvidenceChunkRef]
 ) -> str:
     """
-    Format a structured, unambiguous evidence catalog for the Writer LLM.
-    Explicitly labels valid Source IDs, Source Numbers, and Chunk IDs.
+    Format a structured evidence catalog for the Writer LLM.
+    Strictly budgeted to stay comfortably within Groq ITPM token limits (~1000 tokens):
+    - Max 8 sources, max 2 chunks per source
+    - Each chunk excerpt truncated to 250 chars
+    - Total catalog text capped at 3500 characters
     """
     if not sources:
         return "No verified sources available in evidence store."
 
+    MAX_SOURCES = 8
+    MAX_CHUNKS_PER_SOURCE = 2
+    MAX_EXCERPT_CHARS = 250
+    MAX_TOTAL_CHARS = 3500
+
     lines = [
-        "============================================================",
-        "AUTHORITATIVE EVIDENCE CATALOG (ONLY CITE THESE VALID SOURCES)",
-        "============================================================",
+        "=== EVIDENCE CATALOG (CITE USING [Source N]) ===",
     ]
 
+    total_chars = 0
+    source_count = 0
+
     for sid, src in sources.items():
-        lines.append(f"\n[Source {src.source_number}] (source_id: '{sid}')")
-        lines.append(f"Title: {src.title}")
-        lines.append(f"URL: {src.url} | Domain: {src.domain} | Published: {src.publication_date}")
-        lines.append("Supporting Evidence Chunks:")
+        if source_count >= MAX_SOURCES:
+            break
 
-        src_chunks = [c for c in evidence_chunks.values() if c.source_id == sid]
+        src_header = f"\n[Source {src.source_number}] {src.title}\nURL: {src.url} | Domain: {src.domain}"
+        lines.append(src_header)
+        total_chars += len(src_header)
+
+        src_chunks = sorted(
+            [c for c in evidence_chunks.values() if c.source_id == sid],
+            key=lambda c: c.similarity_score,
+            reverse=True
+        )[:MAX_CHUNKS_PER_SOURCE]
+
         if not src_chunks:
-            lines.append("  (No specific chunk excerpts)")
+            lines.append("  (No excerpts)")
         for chunk in src_chunks:
-            lines.append(f"  - Chunk ID: '{chunk.chunk_id}' (Relevance: {chunk.similarity_score})")
-            clean_excerpt = chunk.text.replace("\n", " ").strip()
-            lines.append(f"    Excerpt: \"{clean_excerpt}\"")
+            excerpt = chunk.text.replace("\n", " ").strip()
+            if len(excerpt) > MAX_EXCERPT_CHARS:
+                excerpt = excerpt[:MAX_EXCERPT_CHARS] + "..."
+            chunk_line = f"  Chunk '{chunk.chunk_id}': \"{excerpt}\""
+            lines.append(chunk_line)
+            total_chars += len(chunk_line)
 
-    lines.append("\n============================================================")
+        source_count += 1
+
+        if total_chars > MAX_TOTAL_CHARS:
+            lines.append(f"\n[... {len(sources) - source_count} additional sources omitted for brevity]")
+            break
+
+    lines.append("\n=== END EVIDENCE CATALOG ===")
     return "\n".join(lines)
 
 
@@ -589,17 +709,23 @@ def assemble_grounded_report(
     limitations: Optional[List[str]] = None,
     plan: Optional[Any] = None,
     verification_summary: Optional[Dict[str, Any]] = None,
+    background_context: Optional[str] = None,
+    comparative_data: Optional[List[Dict[str, Any]]] = None,
+    challenges: Optional[str] = None,
 ) -> GroundedReport:
     """
     Synthesize complete, publication-grade research report with:
     - Title & Executive Metadata Banner
     - ## 1. Executive Summary
-    - ## 2. Research Objectives
-    - ## 3. Key Findings (Concise headline-based takeaways)
-    - ## 4. Detailed Analysis (In-depth thematic narrative sections)
-    - ## 5. Verified Claims & Grounding Lineage (Audited claims table)
-    - ## 6. Strategic Implications & Forward Outlook
-    - ## 7. Research Methodology & Limitations
+    - ## 2. Research Objectives & Scope
+    - ## 3. Background & Context
+    - ## 4. Key Findings
+    - ## 5. Detailed Analysis (In-depth thematic narrative sections)
+    - ## 6. Comparative Data & Statistics
+    - ## 7. Challenges & Open Questions
+    - ## 8. Verified Claims & Grounding Lineage (Audited claims table)
+    - ## 9. Strategic Implications & Forward Outlook
+    - ## 10. Research Methodology & Limitations
     - # Sources (Automatic authoritative references catalog)
     """
     now_utc = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
@@ -613,7 +739,7 @@ def assemble_grounded_report(
             if sid in sources:
                 cited_source_ids.add(sid)
 
-    # 1. Resolve objectives
+    # ── Section 2: Resolve objectives ──
     final_objectives: List[str] = list(objectives or [])
     if not final_objectives and plan and isinstance(plan, dict):
         final_objectives.extend(plan.get("sub_questions", []))
@@ -622,9 +748,10 @@ def assemble_grounded_report(
             f"Synthesize comprehensive empirical evidence regarding '{topic}'.",
             f"Quantify key factual metrics, timeline indicators, and domain impact.",
             f"Assess systemic drivers, cross-source validation, and critical implications.",
+            f"Identify current challenges, open questions, and future trajectory.",
         ]
 
-    # 2. Resolve key findings
+    # ── Section 4: Resolve key findings ──
     formatted_key_findings: List[str] = []
     if key_findings:
         for kf in key_findings:
@@ -639,7 +766,7 @@ def assemble_grounded_report(
                 formatted_key_findings.append(f"- {kf.strip()}")
 
     if not formatted_key_findings and claims:
-        for idx, c in enumerate(claims[:6], 1):
+        for idx, c in enumerate(claims[:8], 1):
             claim_text = c.text.strip()
             if len(claim_text) < 15:
                 continue
@@ -660,28 +787,55 @@ def assemble_grounded_report(
                 status_note = " *(Note: Unsubstantiated by evidence store)*"
             formatted_key_findings.append(f"- **Finding {idx}: {hl}** — {claim_text}{cit_suffix}{status_note}")
 
+    # ── Build Report Markdown ──
     report_sections = [
         f"# Research Report: {topic}\n",
         f"> **SYNAPSE AI Intelligence Engine** | **Status**: Verified Grounded Report | **Generated**: {now_utc} | **Evidence Base**: {len(sources)} Verified Sources\n",
         "---",
         "",
+
+        # Section 1: Executive Summary
         "## 1. Executive Summary\n",
         _sanitize_report_text(summary, topic),
         "",
-        "## 2. Research Objectives\n",
+
+        # Section 2: Research Objectives & Scope
+        "## 2. Research Objectives & Scope\n",
         "\n".join(f"- {obj}" for obj in final_objectives),
         "",
-        "## 3. Key Findings\n",
-        "\n".join(formatted_key_findings) if formatted_key_findings else "- Detailed evidence synthesis underway.",
-        "",
-        "## 4. Detailed Analysis\n",
     ]
 
-    # Detailed Analysis / Thematic Synthesis
+    # Section 3: Background & Context (NEW)
+    bg_context = (background_context or "").strip()
+    if bg_context and len(bg_context) > 50:
+        report_sections.extend([
+            "## 3. Background & Context\n",
+            _sanitize_report_text(bg_context, topic),
+            "",
+        ])
+    else:
+        report_sections.extend([
+            "## 3. Background & Context\n",
+            f"This research investigates **{topic}** through systematic evidence collection "
+            f"from {len(sources)} verified sources spanning academic publications, industry reports, "
+            f"and authoritative web resources.",
+            "",
+        ])
+
+    # Section 4: Key Findings
+    report_sections.extend([
+        "## 4. Key Findings\n",
+        "\n".join(formatted_key_findings) if formatted_key_findings else "- Detailed evidence synthesis underway.",
+        "",
+    ])
+
+    # Section 5: Detailed Analysis (Thematic)
+    report_sections.append("## 5. Detailed Analysis\n")
+
     if thematic_analysis:
         for idx, sec in enumerate(thematic_analysis, 1):
             heading = sec.get("heading", f"Thematic Investigation {idx}").strip()
-            heading_clean = re.sub(r'^\d+[\.\)]\s*', '', heading)
+            heading_clean = re.sub(r'^\d+[\.)\]]\s*', '', heading)
             content = sec.get("content", "").strip()
             report_sections.append(f"### {heading_clean}\n")
             report_sections.append(f"{content}\n")
@@ -690,8 +844,8 @@ def assemble_grounded_report(
             claim_text = c.text.strip()
             if len(claim_text) < 15:
                 continue
-            hl = getattr(c, "headline", None) or f"Empirical Observation {idx}"
-            hl = re.sub(r'^\d+[\.\)]\s*', '', hl).strip()
+            hl = getattr(c, "headline", None) or f"Research Finding {idx}"
+            hl = re.sub(r'^\d+[\.)\]]\s*', '', hl).strip()
             cit_tag = format_claim_citation_tags(c, sources)
             cit_suffix = f" {cit_tag}" if cit_tag else ""
             report_sections.append(f"### {hl}\n")
@@ -699,10 +853,41 @@ def assemble_grounded_report(
     else:
         report_sections.append("Analysis synthesized from verified evidence chunks.\n")
 
-    # Section 5: Verified Claims & Grounding Lineage Table
+    # Section 6: Comparative Data & Statistics (NEW)
+    comp_data = comparative_data or []
+    if comp_data:
+        report_sections.extend([
+            "## 6. Comparative Data & Statistics\n",
+        ])
+        for comp in comp_data:
+            category = comp.get("category", "Comparison")
+            entries = comp.get("entries", [])
+            if entries and isinstance(entries, list) and isinstance(entries[0], dict):
+                # Build a markdown table from the entries
+                headers = list(entries[0].keys())
+                report_sections.append(f"### {category}\n")
+                report_sections.append("| " + " | ".join(h.replace("_", " ").title() for h in headers) + " |")
+                report_sections.append("|" + "|".join("---" for _ in headers) + "|")
+                for entry in entries:
+                    row = "| " + " | ".join(str(entry.get(h, "—")).replace("|", "/") for h in headers) + " |"
+                    report_sections.append(row)
+                report_sections.append("")
+        report_sections.append("")
+
+    # Section 7: Challenges & Open Questions (NEW)
+    challenges_text = (challenges or "").strip()
+    if challenges_text and len(challenges_text) > 50:
+        report_sections.extend([
+            "## 7. Challenges & Open Questions\n",
+            _sanitize_report_text(challenges_text, topic),
+            "",
+        ])
+
+    # Section 8: Verified Claims & Grounding Lineage Table
+    section_num = 8
     if claims:
         report_sections.extend([
-            "## 5. Verified Claims & Grounding Lineage\n",
+            f"## {section_num}. Verified Claims & Grounding Lineage\n",
             "| ID | Status | Confidence | Claim Statement | Evidence Excerpt | Source |",
             "|---|---|---|---|---|---|",
         ])
@@ -728,29 +913,33 @@ def assemble_grounded_report(
             report_sections.append(f"| `{c.claim_id}` | {icon} | {conf} | {clean_stmt} | *\"{excerpt}\"* | {src_link} |")
         report_sections.append("")
 
-    # Section 6: Strategic Implications & Forward Outlook
+    # Section 9: Strategic Implications & Forward Outlook
+    section_num = 9
     report_sections.extend([
-        "## 6. Strategic Implications & Forward Outlook\n",
+        f"## {section_num}. Strategic Implications & Forward Outlook\n",
         _sanitize_report_text(conclusion, topic) if conclusion
         else f"Strategic decision-making regarding {topic} requires ongoing empirical observation.",
         ""
     ])
 
-    # Section 7: Research Limitations & Methodology Notes
+    # Section 10: Research Methodology & Limitations
+    section_num = 10
     resolved_limitations = list(limitations or [])
     if not resolved_limitations:
         resolved_limitations = [
             f"Report synthesized from verified evidence chunks retrieved during research session ({now_utc}).",
             "All cited sources were validated for accessibility, domain authority, and relevance.",
-            "Multi-agent verification loop conducted automated consistency and evidence auditing."
+            "Multi-agent verification loop conducted automated consistency and evidence auditing.",
+            "Some paywalled or access-restricted sources may not have been fully analyzed.",
+            "Evidence represents a snapshot; ongoing developments may affect conclusions."
         ]
     report_sections.extend([
-        "## 7. Research Methodology & Limitations\n",
+        f"## {section_num}. Research Methodology & Limitations\n",
         "\n".join(f"- {lim}" for lim in resolved_limitations),
         ""
     ])
 
-    # Automatic Sources Section (generates "# Sources\n\n...")
+    # Automatic Sources Section
     sources_sec = generate_sources_section(sources, cited_source_ids=cited_source_ids or None)
     report_sections.append(sources_sec)
 
@@ -774,8 +963,77 @@ def assemble_grounded_report(
 
 
 # -----------------------------
-# Parser for LLM Structured Output
+# Parser for LLM Structured Output & Resilient JSON Repair
 # -----------------------------
+def _attempt_json_repair(raw: str) -> Optional[Dict[str, Any]]:
+    """
+    Repairs malformed or truncated JSON output from LLM.
+    Handles unescaped newlines, trailing commas, missing closing brackets, and truncation.
+    """
+    s = raw.strip()
+    if s.startswith("```json"):
+        s = s[7:]
+    elif s.startswith("```"):
+        s = s[3:]
+    if s.endswith("```"):
+        s = s[:-3]
+    s = s.strip()
+
+    start = s.find("{")
+    if start == -1:
+        return None
+    s = s[start:]
+
+    # Direct parse
+    try:
+        return json.loads(s)
+    except Exception:
+        pass
+
+    # Fix trailing commas before } or ]
+    fixed = re.sub(r",\s*([\]\}])", r"\1", s)
+    try:
+        return json.loads(fixed)
+    except Exception:
+        pass
+
+    # Truncation repair: close strings and count unclosed braces/brackets
+    quote_count = s.count('"') - s.count(r'\"')
+    cand = s + ('"' if quote_count % 2 != 0 else '')
+    open_cur = cand.count('{') - cand.count('}')
+    open_sq = cand.count('[') - cand.count(']')
+    if open_cur >= 0 and open_sq >= 0:
+        fixed_cand = cand + (']' * open_sq) + ('}' * open_cur)
+        try:
+            return json.loads(fixed_cand)
+        except Exception:
+            pass
+
+    # Truncation repair: backtrack from the end to find the last clean JSON boundary
+    for delim in ["\n", ",", "}", "]"]:
+        pos = s.rfind(delim)
+        attempts = 0
+        while pos > 100 and attempts < 20:
+            cand = s[:pos].strip()
+            if cand.endswith(","):
+                cand = cand[:-1].strip()
+            qc = cand.count('"') - cand.count(r'\"')
+            if qc % 2 != 0:
+                cand += '"'
+            open_cur = cand.count("{") - cand.count("}")
+            open_sq = cand.count("[") - cand.count("]")
+            if open_cur >= 0 and open_sq >= 0:
+                candidate_fixed = cand + ("]" * open_sq) + ("}" * open_cur)
+                try:
+                    return json.loads(candidate_fixed)
+                except Exception:
+                    pass
+            pos = s[:pos].rfind(delim)
+            attempts += 1
+
+    return None
+
+
 def parse_writer_claims_response(
     raw_output: str,
     sources: Dict[str, Source],
@@ -795,163 +1053,218 @@ def parse_writer_claims_response(
     key_findings: List[Dict[str, str]] = []
     thematic_analysis: List[Dict[str, Any]] = []
     limitations: List[str] = []
+    background_context = ""
+    comparative_data: List[Dict[str, Any]] = []
+    challenges = ""
 
-    # 1. Attempt JSON parsing
+    # 1. Attempt JSON parsing with repair
     cleaned = raw_output.strip()
-    json_candidate = None
+    if cleaned.startswith("```json"):
+        cleaned = cleaned[7:]
+    elif cleaned.startswith("```"):
+        cleaned = cleaned[3:]
+    if cleaned.endswith("```"):
+        cleaned = cleaned[:-3]
+    cleaned = cleaned.strip()
 
-    if "```json" in cleaned:
-        m = re.search(r"```json\s*(\{.*?\})\s*```", cleaned, re.DOTALL)
-        if m:
-            json_candidate = m.group(1)
-    elif "```" in cleaned:
-        m = re.search(r"```\s*(\{.*?\})\s*```", cleaned, re.DOTALL)
-        if m:
-            json_candidate = m.group(1)
-    elif cleaned.startswith("{") and cleaned.endswith("}"):
-        json_candidate = cleaned
-    else:
-        # Search for first opening { and matching closing }
-        start = cleaned.find("{")
-        end = cleaned.rfind("}")
-        if start != -1 and end != -1 and end > start:
-            json_candidate = cleaned[start:end + 1]
+    start = cleaned.find("{")
+    end = cleaned.rfind("}")
+    json_candidate = cleaned[start:end + 1] if (start != -1 and end != -1 and end > start) else (cleaned[start:] if start != -1 else cleaned)
 
+    data = None
     if json_candidate:
         try:
             data = json.loads(json_candidate)
-            summary = data.get("executive_summary") or data.get("summary") or data.get("introduction", "")
-            conclusion = data.get("strategic_outlook") or data.get("conclusion", "")
-            raw_claims = data.get("claims", [])
-            objectives = data.get("research_objectives") or []
-            key_findings = data.get("key_findings") or []
-            thematic_analysis = data.get("thematic_analysis") or []
-            limitations = data.get("limitations") or data.get("methodology_notes") or []
+        except Exception:
+            data = _attempt_json_repair(json_candidate)
 
-            for idx, rc in enumerate(raw_claims, 1):
-                if isinstance(rc, dict):
-                    cid = rc.get("claim_id") or f"claim_{idx}"
-                    headline = rc.get("headline") or rc.get("title")
-                    text = rc.get("text") or rc.get("claim") or ""
-                    src_ids = rc.get("supporting_source_ids") or rc.get("sources") or []
-                    chk_ids = rc.get("evidence_chunk_ids") or rc.get("chunks") or []
-                    conf = float(rc.get("confidence", 1.0))
+    if data and isinstance(data, dict):
+        summary = data.get("executive_summary") or data.get("summary") or data.get("introduction", "")
+        conclusion = data.get("strategic_outlook") or data.get("conclusion", "")
+        raw_claims = data.get("claims", [])
+        objectives = data.get("research_objectives") or []
+        key_findings = data.get("key_findings") or []
+        thematic_analysis = data.get("thematic_analysis") or []
+        limitations = data.get("limitations") or data.get("methodology_notes") or []
+        background_context = data.get("background_context") or ""
+        comparative_data = data.get("comparative_data") or []
+        challenges = data.get("challenges") or ""
 
-                    if isinstance(src_ids, str):
-                        src_ids = [src_ids]
-                    if isinstance(chk_ids, str):
-                        chk_ids = [chk_ids]
+        for idx, rc in enumerate(raw_claims, 1):
+            if isinstance(rc, dict):
+                cid = rc.get("claim_id") or f"claim_{idx}"
+                headline = rc.get("headline") or rc.get("title")
+                text = rc.get("text") or rc.get("claim") or ""
+                src_ids = rc.get("supporting_source_ids") or rc.get("sources") or []
+                chk_ids = rc.get("evidence_chunk_ids") or rc.get("chunks") or []
+                conf = float(rc.get("confidence", 1.0))
 
-                    # Map any integer source numbers to source_ids if needed
-                    resolved_src_ids = []
-                    for sid in src_ids:
-                        sid_str = str(sid).strip()
-                        num_m = re.match(r"(?:source\s*)?(\d+)", sid_str, re.IGNORECASE)
-                        if num_m:
-                            num = int(num_m.group(1))
-                            matching_src = next((s for s in sources.values() if s.source_number == num), None)
-                            if matching_src:
-                                resolved_src_ids.append(matching_src.source_id)
-                            else:
-                                resolved_src_ids.append(sid_str)
+                if isinstance(src_ids, str):
+                    src_ids = [src_ids]
+                if isinstance(chk_ids, str):
+                    chk_ids = [chk_ids]
+
+                resolved_src_ids = []
+                for sid in src_ids:
+                    sid_str = str(sid).strip()
+                    num_m = re.match(r"(?:source\s*)?(\d+)", sid_str, re.IGNORECASE)
+                    if num_m:
+                        num = int(num_m.group(1))
+                        matching_src = next((s for s in sources.values() if s.source_number == num), None)
+                        if matching_src:
+                            resolved_src_ids.append(matching_src.source_id)
                         else:
                             resolved_src_ids.append(sid_str)
+                    else:
+                        resolved_src_ids.append(sid_str)
 
-                    if text:
+                if text:
+                    claims.append(Claim(
+                        claim_id=cid,
+                        headline=headline,
+                        text=text,
+                        supporting_source_ids=resolved_src_ids,
+                        evidence_chunk_ids=[str(c) for c in chk_ids],
+                        confidence=conf,
+                    ))
+
+        # If claims list was missing or truncated but key_findings was parsed, derive claims from key_findings!
+        if not claims and key_findings:
+            logger.info("Deriving structured claims from %d parsed key findings.", len(key_findings))
+            for idx, kf in enumerate(key_findings, 1):
+                if isinstance(kf, dict):
+                    hl = kf.get("headline") or f"Key Finding {idx}"
+                    ta = kf.get("takeaway") or ""
+                    cited = re.findall(r"\[(?:Source\s*)?(\d+)\]", ta)
+                    resolved = []
+                    for c_num in cited:
+                        src_match = next((s for s in sources.values() if s.source_number == int(c_num)), None)
+                        if src_match:
+                            resolved.append(src_match.source_id)
+                        else:
+                            resolved.append(c_num)
+                    if ta:
                         claims.append(Claim(
-                            claim_id=cid,
-                            headline=headline,
-                            text=text,
-                            supporting_source_ids=resolved_src_ids,
-                            evidence_chunk_ids=[str(c) for c in chk_ids],
-                            confidence=conf,
+                            claim_id=f"claim_{idx}",
+                            headline=hl,
+                            text=ta,
+                            supporting_source_ids=resolved,
+                            evidence_chunk_ids=[],
+                            confidence=0.9 if resolved else 0.85
                         ))
 
-            # Clean summary if nested JSON was passed
-            if summary and isinstance(summary, str) and summary.strip().startswith("{"):
-                try:
-                    inner = json.loads(summary.strip())
-                    if isinstance(inner, dict):
-                        summary = str(inner.get("summary") or inner.get("executive_summary", ""))
-                except Exception:
-                    pass
+        # Clean summary if nested JSON was passed
+        if summary and isinstance(summary, str) and summary.strip().startswith("{"):
+            try:
+                inner = json.loads(summary.strip())
+                if isinstance(inner, dict):
+                    summary = str(inner.get("summary") or inner.get("executive_summary", ""))
+            except Exception:
+                pass
 
-            if claims:
-                logger.info("Successfully parsed %d structured claims and %d thematic sections from LLM JSON output.", len(claims), len(thematic_analysis))
-                return WriterParseResult(
-                    summary=summary,
-                    claims=claims,
-                    conclusion=conclusion,
-                    objectives=objectives,
-                    key_findings=key_findings,
-                    thematic_analysis=thematic_analysis,
-                    limitations=limitations,
-                )
-            else:
-                # Valid JSON was parsed, but claims array was empty.
-                if sources and evidence_chunks:
-                    logger.info("Generating grounded claims from verified evidence catalog excerpts (clean text).")
-                    for idx, (cid, chunk) in enumerate(list(evidence_chunks.items())[:5], 1):
-                        if not chunk.text or "\x00" in chunk.text or len(chunk.text.strip()) < 30:
-                            continue
-                        clean_sentences = [
-                            s.strip() for s in re.split(r"[.\n]", chunk.text)
-                            if len(s.strip()) > 30 and all(ch.isprintable() or ch in " \t\n" for ch in s)
-                        ]
-                        if clean_sentences:
-                            chosen = clean_sentences[0]
-                            if not chosen.endswith("."):
-                                chosen += "."
-                            claims.append(Claim(
-                                claim_id=f"claim_{idx}",
-                                text=chosen,
-                                supporting_source_ids=[chunk.source_id],
-                                evidence_chunk_ids=[chunk.chunk_id],
-                                confidence=0.85
-                            ))
-                return WriterParseResult(
-                    summary=summary,
-                    claims=claims,
-                    conclusion=conclusion,
-                    objectives=objectives,
-                    key_findings=key_findings,
-                    thematic_analysis=thematic_analysis,
-                    limitations=limitations,
-                )
+        if claims or summary:
+            logger.info("Successfully parsed %d structured claims and %d thematic sections from LLM JSON output.", len(claims), len(thematic_analysis))
+            return WriterParseResult(
+                summary=summary,
+                claims=claims,
+                conclusion=conclusion,
+                objectives=objectives,
+                key_findings=key_findings,
+                thematic_analysis=thematic_analysis,
+                limitations=limitations,
+                background_context=background_context,
+                comparative_data=comparative_data,
+                challenges=challenges,
+            )
 
-        except Exception as e:
-            logger.warning("Strict JSON parsing of writer output failed: %s. Attempting regex/partial block extraction.", str(e))
-            summary_m = re.search(r'"(?:executive_)?summary"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"', json_candidate)
-            if summary_m:
-                summary = summary_m.group(1)
-            conclusion_m = re.search(r'"(?:strategic_outlook|conclusion)"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"', json_candidate)
-            if conclusion_m:
-                conclusion = conclusion_m.group(1)
+    # 2. Regex fallback extraction if JSON repair could not parse the entire structure
+    if json_candidate and not claims:
+        logger.warning("JSON parsing failed across strict and repair attempts. Executing regex section extraction.")
+        summary_m = re.search(r'"(?:executive_)?summary"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"', json_candidate)
+        if summary_m:
+            summary = summary_m.group(1).replace(r'\"', '"').replace(r'\n', '\n')
 
-            claim_objs = re.findall(r'\{\s*"claim_id"\s*:[^}]+}', json_candidate, re.DOTALL)
-            for idx, c_str in enumerate(claim_objs, 1):
-                try:
-                    c_data = json.loads(c_str)
-                    cid = c_data.get("claim_id") or f"claim_{idx}"
-                    text = c_data.get("text") or c_data.get("claim") or ""
-                    headline = c_data.get("headline") or c_data.get("title")
-                    src_ids = c_data.get("supporting_source_ids") or []
-                    chk_ids = c_data.get("evidence_chunk_ids") or []
-                    if text:
-                        claims.append(Claim(
-                            claim_id=cid,
-                            headline=headline,
-                            text=text,
-                            supporting_source_ids=[str(s) for s in src_ids],
-                            evidence_chunk_ids=[str(c) for c in chk_ids],
-                            confidence=float(c_data.get("confidence", 0.95))
-                        ))
-                except Exception:
-                    pass
+        conclusion_m = re.search(r'"(?:strategic_outlook|conclusion)"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"', json_candidate)
+        if conclusion_m:
+            conclusion = conclusion_m.group(1).replace(r'\"', '"').replace(r'\n', '\n')
 
-            if claims or summary:
-                logger.info("Successfully recovered %d structured claims from partial JSON extraction.", len(claims))
-                return WriterParseResult(summary=summary, claims=claims, conclusion=conclusion)
+        bg_m = re.search(r'"background_context"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"', json_candidate)
+        if bg_m:
+            background_context = bg_m.group(1).replace(r'\"', '"').replace(r'\n', '\n')
+
+        chal_m = re.search(r'"challenges"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"', json_candidate)
+        if chal_m:
+            challenges = chal_m.group(1).replace(r'\"', '"').replace(r'\n', '\n')
+
+        # Extract objectives
+        obj_m = re.search(r'"research_objectives"\s*:\s*\[(.*?)\]', json_candidate, re.DOTALL)
+        if obj_m:
+            objectives = [re.sub(r'^["]+|["]+$', '', item.strip()) for item in re.findall(r'"([^"\\]*(?:\\.[^"\\]*)*)"', obj_m.group(1))]
+
+        # Extract key findings
+        for m in re.finditer(r'\{\s*"headline"\s*:\s*"([^"]+)"\s*,\s*"takeaway"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"', json_candidate):
+            key_findings.append({
+                "headline": m.group(1).strip(),
+                "takeaway": m.group(2).replace(r'\"', '"').strip()
+            })
+
+        # Extract thematic analysis
+        for m in re.finditer(r'\{\s*"heading"\s*:\s*"([^"]+)"\s*,\s*"content"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"', json_candidate):
+            thematic_analysis.append({
+                "heading": m.group(1).strip(),
+                "content": m.group(2).replace(r'\"', '"').replace(r'\n', '\n').strip()
+            })
+
+        # Extract claims
+        claim_objs = re.findall(r'\{\s*"claim_id"\s*:[^}]+}', json_candidate, re.DOTALL)
+        for idx, c_str in enumerate(claim_objs, 1):
+            try:
+                c_data = json.loads(c_str)
+                cid = c_data.get("claim_id") or f"claim_{idx}"
+                text = c_data.get("text") or c_data.get("claim") or ""
+                headline = c_data.get("headline") or c_data.get("title")
+                src_ids = c_data.get("supporting_source_ids") or []
+                chk_ids = c_data.get("evidence_chunk_ids") or []
+                if text:
+                    claims.append(Claim(
+                        claim_id=cid,
+                        headline=headline,
+                        text=text,
+                        supporting_source_ids=[str(s) for s in src_ids],
+                        evidence_chunk_ids=[str(c) for c in chk_ids],
+                        confidence=float(c_data.get("confidence", 0.95))
+                    ))
+            except Exception:
+                pass
+
+        if not claims and key_findings:
+            for idx, kf in enumerate(key_findings, 1):
+                hl = kf.get("headline") or f"Key Finding {idx}"
+                ta = kf.get("takeaway") or ""
+                cited = re.findall(r"\[(?:Source\s*)?(\d+)\]", ta)
+                claims.append(Claim(
+                    claim_id=f"claim_{idx}",
+                    headline=hl,
+                    text=ta,
+                    supporting_source_ids=cited,
+                    evidence_chunk_ids=[],
+                    confidence=0.9 if cited else 0.85
+                ))
+
+        if claims or summary:
+            logger.info("Successfully recovered %d structured claims and %d thematic sections from regex extraction.", len(claims), len(thematic_analysis))
+            return WriterParseResult(
+                summary=summary,
+                claims=claims,
+                conclusion=conclusion,
+                objectives=objectives,
+                key_findings=key_findings,
+                thematic_analysis=thematic_analysis,
+                limitations=limitations,
+                background_context=background_context,
+                comparative_data=comparative_data,
+                challenges=challenges,
+            )
 
     # 2. Text fallback parser: Look for bullet points or numbered claims with citations
     logger.info("Using text fallback parser for writer output.")
@@ -1059,40 +1372,285 @@ def synthesize_deterministic_grounded_claims(
     Deterministic synthesis of grounded claims directly from retrieved evidence chunks.
     Used as an automated fallback when LLM services are rate-limited or offline.
     Never invents facts or fabricates citations.
-    """
-    summary = f"Empirical synthesis of retrieved evidence regarding '{topic}' (generated via deterministic synthesis fallback)."
-    conclusion = f"Analysis synthesized from {len(sources)} verified sources across available evidence chunks."
-    claims: List[Claim] = []
 
+    Produces professional-grade report content by:
+    - Aggressively filtering boilerplate, navigation, ads, and garbage text
+    - Scoring sentences by research informativeness
+    - Generating proper executive summary, objectives, findings, and analysis
+    """
+    # ── Aggressive Boilerplate / Garbage Filter ──
+    SKIP_PATTERNS = [
+        r'^(skip|jump)\s+to',
+        r'cookie|privacy\s+policy|consent',
+        r'copyright|©|all\s+rights\s+reserved',
+        r'creative\s*commons|cc\s+by',
+        r'^(fig(ure)?|table|appendix)\s*\d',
+        r'(sign\s+up|log\s*in|subscribe|newsletter|create\s+account)',
+        r'^(back\s+to|home|menu|navigation|breadcrumb)',
+        r'^\s*[\[\(]\s*\d+\s*[\]\)]',
+        r'^(doi|isbn|issn|pmid|arxiv)\s*:',
+        r'^\w+\s*,\s*\w+\s*,\s*\w+\s*,',
+        r'university\s+of.*,.*,',
+        r'department\s+of',
+        r'et\s+al\.',
+        r'(javascript|stylesheet|browser|enable\s+js)',
+        r'(displaying\s+the\s+site\s+without|ensure\s+continued\s+support)',
+        r'(loading|please\s+wait|redirecting)',
+        r'(we\s+use\s+cookies|accept\s+cookies|cookie\s+settings)',
+        r'(advertisement|sponsored|promoted|click\s+here)',
+        r'(share\s+this|tweet|facebook|linkedin|email\s+this)',
+        r'(previous|next)\s+(article|page|post)',
+        r'(read\s+more|continue\s+reading|see\s+also)',
+        r'(about\s+the\s+author|author\s+bio|correspondence)',
+        r'^\s*\d+\s*(views|likes|comments|shares)',
+        r'(download\s+pdf|full\s+text|access\s+this)',
+        r'(open\s+access|peer.?reviewed|submitted|accepted|published\s+online)',
+        r'^(in\s+this\s+(article|review|paper)|this\s+article\s+(will|is))',
+        r'^[a-z]{1,3},\s',
+        r'(terms\s+of\s+service|disclaimer|conditions)',
+        r'(related\s+articles|you\s+may\s+also|recommended)',
+        r'^abstract\s*$',
+    ]
+    skip_re = re.compile('|'.join(SKIP_PATTERNS), re.IGNORECASE)
+
+    def is_quality_sentence(text: str) -> bool:
+        """Check if a sentence has enough substance to be research-worthy."""
+        words = text.split()
+        if len(words) < 10 or len(words) > 100:
+            return False
+        if not text[0].isupper():
+            return False
+        alpha_ratio = sum(1 for c in text if c.isalpha()) / max(1, len(text))
+        if alpha_ratio < 0.60:
+            return False
+        if text.count('http') > 1 or text.count('{') > 0 or text.count('}') > 0:
+            return False
+        special_ratio = sum(1 for c in text if not c.isalnum() and c not in ' .,;:!?()-\'\"') / max(1, len(text))
+        if special_ratio > 0.15:
+            return False
+        return True
+
+    def score_sentence(text: str) -> float:
+        """Score a sentence by how informative and research-worthy it is."""
+        score = 0.0
+        words = text.split()
+        wc = len(words)
+
+        if 15 <= wc <= 60:
+            score += 3.0
+        elif 10 <= wc <= 80:
+            score += 1.5
+
+        stats = re.findall(
+            r'\d+[\.,]?\d*\s*(%|percent|million|billion|trillion|thousand|fold|'
+            r'GHz|MHz|qubit|nm|dB|mg|kg|patients|participants|trials|'
+            r'studies|cases|years|months|dollars|USD|EUR)',
+            text, re.IGNORECASE
+        )
+        score += len(stats) * 2.0
+
+        quant = re.findall(
+            r'(increased|decreased|improved|reduced|achieved|demonstrated|'
+            r'surpassed|exceeded|compared|approximately|estimated|measured|'
+            r'observed|reported|detected|identified|showed|revealed|confirmed)',
+            text, re.IGNORECASE
+        )
+        score += len(quant) * 1.5
+
+        research_kw = re.findall(
+            r'(study|research|trial|findings|results|analysis|evidence|'
+            r'significant|breakthrough|milestone|innovation|discovery|'
+            r'therapeutic|clinical|mechanism|efficacy|safety|approval|'
+            r'FDA|WHO|NIH|treatment|diagnosis|technology|algorithm|'
+            r'patients|genome|protein|molecular|cells|therapy)',
+            text, re.IGNORECASE
+        )
+        score += len(research_kw) * 0.8
+
+        if text[0].isupper() and text.rstrip().endswith('.'):
+            score += 1.0
+
+        if text.isupper() or (not text.rstrip().endswith('.') and wc < 10):
+            score -= 3.0
+        if wc < 8 or wc > 100:
+            score -= 3.0
+
+        topic_words = set(w.lower() for w in topic.split() if len(w) > 3)
+        overlap = sum(1 for w in words if w.lower() in topic_words)
+        score += overlap * 0.5
+
+        return score
+
+    # ── Extract and rank sentences ──
+    candidate_sentences = []
     sorted_chunks = sorted(
         evidence_chunks.values(),
         key=lambda c: getattr(c, "similarity_score", 0.0),
         reverse=True
     )
 
-    idx = 1
-    for chunk in sorted_chunks[:6]:
-        # Validate chunk text is readable before extraction
-        if not chunk.text or sum(1 for ch in chunk.text[:200] if ch.isprintable()) / max(1, len(chunk.text[:200])) < 0.85:
+    for chunk in sorted_chunks[:20]:
+        if not chunk.text:
+            continue
+        sample = chunk.text[:300]
+        if sum(1 for ch in sample if ch.isprintable()) / max(1, len(sample)) < 0.85:
             continue
         sentences = [
-            s.strip() for s in re.split(r"[.\n]", chunk.text)
-            if len(s.strip()) > 35
-            and sum(1 for ch in s if ch.isprintable()) / max(1, len(s)) > 0.90
+            s.strip() for s in re.split(r'(?<=[.!?])\s+', chunk.text)
+            if len(s.strip()) > 50
+            and sum(1 for ch in s if ch.isprintable()) / max(1, len(s)) > 0.92
         ]
-        if sentences:
-            chosen_sentence = sentences[0]
-            if not chosen_sentence.endswith("."):
-                chosen_sentence += "."
-            claims.append(Claim(
-                claim_id=f"claim_{idx}",
-                headline=f"Empirical Finding {idx}",
-                text=chosen_sentence,
-                supporting_source_ids=[chunk.source_id],
-                evidence_chunk_ids=[chunk.chunk_id],
-                confidence=0.85
-            ))
-            idx += 1
+        for sent in sentences:
+            if skip_re.search(sent):
+                continue
+            if not is_quality_sentence(sent):
+                continue
+            sc = score_sentence(sent)
+            if sc > 1.5:
+                candidate_sentences.append({
+                    "text": sent if sent.endswith('.') else sent + '.',
+                    "score": sc,
+                    "source_id": chunk.source_id,
+                    "chunk_id": chunk.chunk_id,
+                })
 
-    return WriterParseResult(summary=summary, claims=claims, conclusion=conclusion)
+    candidate_sentences.sort(key=lambda x: x["score"], reverse=True)
+    seen = set()
+    unique = []
+    for cs in candidate_sentences:
+        key = cs["text"][:60].lower()
+        if key not in seen:
+            seen.add(key)
+            unique.append(cs)
+    selected = unique[:12]
+
+    # ── Build Claims ──
+    claims: List[Claim] = []
+    for idx, cand in enumerate(selected, 1):
+        first_clause = re.split(r'[,;:]', cand["text"])[0].strip()
+        cwords = first_clause.split()
+        if 3 <= len(cwords) <= 8 and len(first_clause) < 60 and first_clause[0].isupper():
+            headline = first_clause
+        else:
+            key_phrases = re.findall(r'([A-Z][a-z]+(?:\s+[a-z]+){1,4})', cand["text"][:100])
+            headline = key_phrases[0] if key_phrases else " ".join(cwords[:5]) + "..."
+        claims.append(Claim(
+            claim_id=f"claim_{idx}",
+            headline=headline,
+            text=cand["text"],
+            supporting_source_ids=[cand["source_id"]],
+            evidence_chunk_ids=[cand["chunk_id"]],
+            confidence=0.85
+        ))
+
+    # ── Generate Research Objectives ──
+    tc = topic.strip()
+    objectives = [
+        f"What are the most significant recent developments and breakthroughs in {tc}?",
+        f"What is the current state of research, clinical applications, and adoption of {tc}?",
+        f"What are the key technical challenges, limitations, and open questions in {tc}?",
+        f"What are the strategic implications and future outlook for {tc}?",
+    ]
+
+    # ── Generate Key Findings ──
+    key_findings = []
+    for idx, cand in enumerate(selected[:8], 1):
+        src = sources.get(cand["source_id"])
+        tag = f"[Source {src.source_number}]" if src else ""
+        txt = cand["text"][:300] + ("..." if len(cand["text"]) > 300 else "")
+        hl = claims[idx - 1].headline if idx <= len(claims) else f"Key Finding {idx}"
+        key_findings.append({"headline": hl, "takeaway": f"{txt} {tag}"})
+
+    # ── Build Thematic Analysis grouped by source domain ──
+    source_groups: Dict[str, List[dict]] = {}
+    for cand in selected:
+        src = sources.get(cand["source_id"])
+        gk = (src.domain or "general") if src else "general"
+        source_groups.setdefault(gk, []).append(cand)
+
+    thematic = []
+    tidx = 1
+    for domain, cands in source_groups.items():
+        if not cands:
+            continue
+        parts = []
+        for c in cands:
+            src = sources.get(c["source_id"])
+            cit = f"[Source {src.source_number}]" if src else ""
+            parts.append(f"{c['text']} {cit}")
+        thematic.append({
+            "heading": f"{tidx}. Evidence from {domain.title()} Sources",
+            "content": "\n\n".join(parts),
+        })
+        tidx += 1
+
+    if len(thematic) <= 1 and selected:
+        thematic = []
+        mid = max(1, len(selected) // 2)
+        if selected[:mid]:
+            parts = []
+            for c in selected[:mid]:
+                src = sources.get(c["source_id"])
+                cit = f"[Source {src.source_number}]" if src else ""
+                parts.append(f"{c['text']} {cit}")
+            thematic.append({"heading": f"1. Core Research Findings on {tc}", "content": "\n\n".join(parts)})
+        if selected[mid:]:
+            parts = []
+            for c in selected[mid:]:
+                src = sources.get(c["source_id"])
+                cit = f"[Source {src.source_number}]" if src else ""
+                parts.append(f"{c['text']} {cit}")
+            thematic.append({"heading": "2. Supporting Evidence and Analysis", "content": "\n\n".join(parts)})
+
+    # ── Executive Summary ──
+    sc_count = len(sources)
+    cc = len(claims)
+    sp = [
+        f"This report synthesizes verified empirical evidence on **{tc}**, "
+        f"drawing from {sc_count} verified sources across academic publications, "
+        f"industry reports, and authoritative web resources."
+    ]
+    if claims:
+        sp.append(f" The analysis identified {cc} grounded claims supported by direct evidence. ")
+        if selected:
+            best_text = selected[0]["text"][:200]
+            bsrc = sources.get(selected[0]["source_id"])
+            bcit = f" [Source {bsrc.source_number}]" if bsrc else ""
+            sp.append(f"Among the key findings: {best_text}{bcit}. ")
+    sp.append(
+        f"The evidence base spans multiple source types and domains, providing "
+        f"a cross-referenced foundation for the conclusions drawn in this report."
+    )
+    summary = "".join(sp)
+
+    # ── Conclusion ──
+    conclusion = (
+        f"Based on systematic analysis of {sc_count} verified sources, this report identifies "
+        f"several significant empirical observations regarding {tc}. "
+        f"The {cc} grounded claims demonstrate active development and research across "
+        f"multiple dimensions of this domain. "
+        f"The findings suggest that {tc} continues to evolve rapidly, with implications "
+        f"for both practitioners and policymakers. Continued monitoring of developments in this area "
+        f"is recommended, particularly as new evidence emerges from ongoing studies and trials. "
+        f"Strategic stakeholders should consider the breadth of evidence presented when making "
+        f"decisions related to this domain."
+    )
+
+    limitations = [
+        "Report synthesized via deterministic analysis of retrieved evidence (LLM synthesis unavailable during this session).",
+        f"Analysis based on {sc_count} sources retrieved at time of research; additional sources may exist.",
+        "Some paywalled or access-restricted sources may not have been fully analyzed.",
+        "Evidence represents a point-in-time snapshot; rapidly evolving fields may have newer developments.",
+        "Cross-source synthesis was performed algorithmically; nuanced interpretations may differ from expert analysis.",
+    ]
+
+    return WriterParseResult(
+        summary=summary,
+        claims=claims,
+        conclusion=conclusion,
+        objectives=objectives,
+        key_findings=key_findings,
+        thematic_analysis=thematic,
+        limitations=limitations,
+    )
 

@@ -167,6 +167,12 @@ def scrape_url_resilient(url: str, timeout: float = SCRAPE_TIMEOUT_SECONDS) -> T
     except Exception:
         domain = "unknown"
 
+    # Skip domains that never provide useful scraped text for research
+    SKIP_DOMAINS = {"youtube.com", "youtu.be", "vimeo.com", "tiktok.com",
+                    "twitter.com", "x.com", "instagram.com", "facebook.com"}
+    if any(sd in domain for sd in SKIP_DOMAINS):
+        return False, f"Skipped non-scrapable media domain: {domain}", None
+
     domain_breaker = get_domain_circuit_registry().get_breaker(domain)
     if not domain_breaker.allow_request():
         return False, f"Domain circuit breaker is OPEN for {domain} (repeated failures)", None
@@ -214,10 +220,24 @@ def scrape_url_resilient(url: str, timeout: float = SCRAPE_TIMEOUT_SECONDS) -> T
             except Exception as e:
                 return False, f"Malformed HTML parse error: {str(e)}", status
 
-            for tag in soup(["script", "style", "nav", "footer", "header", "aside", "noscript", "svg"]):
+            # Remove non-content elements aggressively
+            for tag in soup(["script", "style", "nav", "footer", "header", "aside",
+                             "noscript", "svg", "form", "button", "iframe", "object",
+                             "embed", "canvas", "dialog", "menu", "template"]):
                 tag.decompose()
 
-            text = soup.get_text(separator=" ", strip=True)
+            # Remove elements by role/class patterns that typically contain non-content
+            for el in soup.find_all(attrs={"role": re.compile(r"banner|navigation|complementary|contentinfo")}):
+                el.decompose()
+            for el in soup.find_all(class_=re.compile(r"cookie|consent|sidebar|share|social|newsletter|subscribe|popup|modal|ad-|ads-|advert", re.IGNORECASE)):
+                el.decompose()
+
+            # Prefer article/main content if available
+            main_content = soup.find("article") or soup.find("main") or soup.find(attrs={"role": "main"})
+            if main_content and len(main_content.get_text(strip=True)) > 200:
+                text = main_content.get_text(separator=" ", strip=True)
+            else:
+                text = soup.get_text(separator=" ", strip=True)
             clean_text = re.sub(r"\s+", " ", text).strip()
 
             if not clean_text or len(clean_text) < 30:

@@ -1,14 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import './App.css';
+// Styles are imported in main.jsx (modular design system)
 
 import Topbar from './components/Topbar';
 import Home from './components/Home';
-import Hero from './components/Hero';
-import LiveAgentExecution from './components/LiveAgentExecution';
-import ResearchPlannerView from './components/ResearchPlannerView';
-import VerificationStatus from './components/VerificationStatus';
-import Metrics from './components/Metrics';
-import Results from './components/Results';
+import DashboardPanel from './components/DashboardPanel';
 import Footer from './components/Footer';
 import HistoryModal from './components/HistoryModal';
 import AuthModal from './components/AuthModal';
@@ -61,11 +56,7 @@ export default function App() {
     }
   };
 
-  /* ── Lock to Light Theme ── */
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', 'light');
-    localStorage.setItem('syn-t', 'light');
-  }, []);
+  /* ── Dark theme is the default (set in globals.css) ── */
 
   /* ── History Modal ── */
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -261,7 +252,7 @@ export default function App() {
         refreshSignal={refreshSignal}
       />
 
-      <div className="main full-width-main">
+      <div className="app-shell">
         <Topbar
           currentView={currentView}
           onSwitchView={handleSwitchView}
@@ -271,7 +262,7 @@ export default function App() {
           onLogout={handleLogout}
         />
 
-        <div className="content">
+        <div className="app-content">
           {currentView === 'home' && (
             <Home
               isAuthenticated={!!currentUser}
@@ -292,41 +283,20 @@ export default function App() {
           )}
 
           {currentView === 'dashboard' && (
-            <div className="dashboard-view">
-              <Hero
-                onStartResearch={(topic) => handleStartResearch(topic)}
-                isRunning={isRunning}
-              />
-
-              {error && <div className="err">{error}</div>}
-
-              {/* Verification Status Banner */}
-              <VerificationStatus verificationState={verificationState} />
-
-              {/* Research Planner View */}
-              <ResearchPlannerView
-                researchPlan={displayPlan}
-                isRunning={isRunning}
-              />
-
-              {/* Live 6-Agent Pipeline */}
-              <LiveAgentExecution
-                liveAgents={liveAgents}
-                agentStatuses={displayStatuses}
-                verificationState={verificationState}
-              />
-
-              <Metrics metrics={displayMetrics} />
-
-              <div id="results-section">
-                <Results
-                  results={displayResults}
-                  topic={currentTopic}
-                  evidenceClaims={displayEvidenceClaims}
-                  sourceProfiles={displaySourceProfiles}
-                />
-              </div>
-            </div>
+            <DashboardPanel
+              onStartResearch={(topic) => handleStartResearch(topic)}
+              isRunning={isRunning}
+              error={error}
+              verificationState={verificationState}
+              displayPlan={displayPlan}
+              liveAgents={liveAgents}
+              displayStatuses={displayStatuses}
+              displayMetrics={displayMetrics}
+              displayResults={displayResults}
+              currentTopic={currentTopic}
+              displayEvidenceClaims={displayEvidenceClaims}
+              displaySourceProfiles={displaySourceProfiles}
+            />
           )}
 
           {currentView === 'workspace' && (

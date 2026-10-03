@@ -160,6 +160,7 @@ export default function useResearch() {
             degradedModes: d.state.degraded_modes || d.degraded_modes || prev.degradedModes || [],
             telemetry: d.telemetry || d.state?.telemetry || prev.telemetry || null,
             agentRuns: d.agent_runs || d.state?.agent_runs || prev.agentRuns || [],
+            reportHistory: d.state.report_history || prev.reportHistory || [],
           }));
 
           // Capture final source profiles

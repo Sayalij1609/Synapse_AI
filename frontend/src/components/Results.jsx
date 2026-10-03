@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { marked } from 'marked';
 import { downloadPdf, downloadDocx, downloadMarkdown, fetchSessionDossier, triggerDownload } from '../api';
+import Icon from './shared/Icon';
 import NewsResources from './NewsResources';
 import AgentTelemetryView from './AgentTelemetryView';
 import EvidencePanel from './EvidencePanel';
@@ -12,55 +13,51 @@ import EvidencePanel from './EvidencePanel';
 function sanitizeReportMarkdown(raw) {
   if (!raw) return '';
   let text = raw;
-
-  // Strip raw JSON blocks that leaked into report text
   text = text.replace(/^\s*\{[\s\S]*?"(?:executive_)?summary"\s*:/m, '');
   text = text.replace(/"claims"\s*:\s*\[[\s\S]*?\]\s*\}/m, '');
-
-  // Remove lines with >50% non-printable characters (binary corruption)
   text = text.split('\n').filter(line => {
     if (line.trim().length === 0) return true;
     const printable = [...line].filter(ch => ch.charCodeAt(0) >= 32 || ch === '\n' || ch === '\t').length;
     return printable / line.length > 0.8;
   }).join('\n');
-
   return text;
 }
 
 function ExpandablePanel({ label, agentLabel, content }) {
   const [open, setOpen] = useState(false);
-
   if (!content) return null;
 
   return (
-    <div className="result-block">
-      <button
-        className={`expand-btn${open ? ' open' : ''}`}
-        onClick={() => setOpen((o) => !o)}
-      >
-        <span className="expand-arrow">▶</span> {label}
+    <div className="expand-panel">
+      <button className={`expand-trigger ${open ? 'open' : ''}`} onClick={() => setOpen(o => !o)}>
+        <span className="expand-arrow">
+          <Icon name="chevronRight" size={12} />
+        </span>
+        {label}
       </button>
-      <div className={`expand-body${open ? ' open' : ''}`}>
-        <div className="raw-panel">
-          <div className="raw-label">{agentLabel}</div>
-          <div className="raw-text">{content}</div>
+      <div className={`expand-body ${open ? 'open' : ''}`}>
+        <div className="expand-content">
+          <div style={{ marginBottom: '8px', color: 'var(--text-muted)', fontWeight: 600 }}>{agentLabel}</div>
+          {content}
         </div>
       </div>
     </div>
   );
 }
 
-export default function Results({ results, topic, evidenceClaims, sourceProfiles }) {
-  const [activeTab, setActiveTab] = useState('report');
+/**
+ * Results — Content-only renderer. Tab selection is driven by parent
+ * via the `forcedTab` prop (from DashboardPanel sidebar).
+ */
+export default function Results({ results, topic, evidenceClaims, sourceProfiles, forcedTab = 'report' }) {
   const [pdfLoading, setPdfLoading] = useState(false);
   const [docxLoading, setDocxLoading] = useState(false);
   const [mdLoading, setMdLoading] = useState(false);
   const [dossierLoading, setDossierLoading] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [selectedCycle, setSelectedCycle] = useState(null);
 
-  const hasAny = results.planner || results.search || results.reader || results.writer || results.critic;
-
-  if (!hasAny) return null;
+  const activeTab = forcedTab;
 
   const handleDownloadMarkdown = async () => {
     if (!results.writer) return;
@@ -68,8 +65,7 @@ export default function Results({ results, topic, evidenceClaims, sourceProfiles
     const safeTopic = topic ? topic.replace(/\s+/g, '_') : 'report';
     try {
       const blob = await downloadMarkdown({
-        report: results.writer,
-        topic,
+        report: results.writer, topic,
         sessionId: results.session_id || results.id,
         claims: evidenceClaims || results.claims,
         sources: sourceProfiles || results.sources,
@@ -79,11 +75,8 @@ export default function Results({ results, topic, evidenceClaims, sourceProfiles
       a.download = `synapse_${safeTopic}.md`;
       a.click();
     } catch (err) {
-      console.warn('Backend markdown export failed, using local raw report fallback', err);
       const a = document.createElement('a');
-      a.href = URL.createObjectURL(
-        new Blob([results.writer], { type: 'text/markdown' })
-      );
+      a.href = URL.createObjectURL(new Blob([results.writer], { type: 'text/markdown' }));
       a.download = `synapse_${safeTopic}.md`;
       a.click();
     } finally {
@@ -96,8 +89,7 @@ export default function Results({ results, topic, evidenceClaims, sourceProfiles
     setPdfLoading(true);
     try {
       const blob = await downloadPdf({
-        report: results.writer,
-        topic,
+        report: results.writer, topic,
         sessionId: results.session_id || results.id,
         claims: evidenceClaims || results.claims,
         sources: sourceProfiles || results.sources,
@@ -106,11 +98,8 @@ export default function Results({ results, topic, evidenceClaims, sourceProfiles
       a.href = URL.createObjectURL(blob);
       a.download = `synapse_${topic ? topic.replace(/\s+/g, '_') : 'report'}.pdf`;
       a.click();
-    } catch {
-      alert('PDF download failed.');
-    } finally {
-      setPdfLoading(false);
-    }
+    } catch { alert('PDF download failed.'); }
+    finally { setPdfLoading(false); }
   };
 
   const handleDownloadDocx = async () => {
@@ -118,8 +107,7 @@ export default function Results({ results, topic, evidenceClaims, sourceProfiles
     setDocxLoading(true);
     try {
       const blob = await downloadDocx({
-        report: results.writer,
-        topic,
+        report: results.writer, topic,
         sessionId: results.session_id || results.id,
         claims: evidenceClaims || results.claims,
         sources: sourceProfiles || results.sources,
@@ -128,11 +116,8 @@ export default function Results({ results, topic, evidenceClaims, sourceProfiles
       a.href = URL.createObjectURL(blob);
       a.download = `synapse_${topic ? topic.replace(/\s+/g, '_') : 'report'}.docx`;
       a.click();
-    } catch {
-      alert('Word (.docx) download failed.');
-    } finally {
-      setDocxLoading(false);
-    }
+    } catch { alert('Word (.docx) download failed.'); }
+    finally { setDocxLoading(false); }
   };
 
   const handleExportDossier = async () => {
@@ -143,32 +128,17 @@ export default function Results({ results, topic, evidenceClaims, sourceProfiles
       if (sessionId) {
         try {
           const d = await fetchSessionDossier(sessionId);
-          if (d?.dossier_markdown) {
-            dossierContent = d.dossier_markdown;
-          }
-        } catch {
-          // fallback to client-compiled dossier
-        }
+          if (d?.dossier_markdown) dossierContent = d.dossier_markdown;
+        } catch {}
       }
-
       if (!dossierContent) {
         const lines = [
           '# SYNAPSE AI — Research Dossier',
           `**Topic**: ${topic || 'Autonomous Research'}`,
-          `**Generated**: ${new Date().toISOString()}`,
-          '',
-          '---',
-          '## 1. Executive Research Report',
-          '',
-          results.writer || '*No report text generated.*',
-          '',
-          '---',
-          '## 2. Research Plan & Strategy',
-          '',
-          results.planner || '*No plan data available.*',
-          '',
+          `**Generated**: ${new Date().toISOString()}`, '', '---',
+          '## 1. Executive Research Report', '', results.writer || '*No report text generated.*', '',
+          '---', '## 2. Research Plan & Strategy', '', results.planner || '*No plan data available.*', '',
         ];
-
         if (evidenceClaims && evidenceClaims.totalClaims > 0) {
           lines.push('---', '## 3. Evidence & Grounded Claims Lineage', '');
           const { grounded = [], unsupported = [], insufficient = [] } = evidenceClaims;
@@ -180,7 +150,6 @@ export default function Results({ results, topic, evidenceClaims, sourceProfiles
             lines.push('');
           });
         }
-
         if (sourceProfiles && sourceProfiles.length > 0) {
           lines.push('---', '## 4. Source Quality Registry', '');
           lines.push('| Title | Domain | Type | Freshness | Quality Score |');
@@ -190,17 +159,12 @@ export default function Results({ results, topic, evidenceClaims, sourceProfiles
           });
           lines.push('');
         }
-
         dossierContent = lines.join('\n');
       }
-
       const safeTopic = (topic || 'research_session').toLowerCase().replace(/[^a-z0-9_-]/g, '_').slice(0, 40);
       triggerDownload(dossierContent, `synapse_dossier_${safeTopic}.md`, 'text/markdown;charset=utf-8');
-    } catch (err) {
-      alert('Failed to export dossier: ' + err.message);
-    } finally {
-      setDossierLoading(false);
-    }
+    } catch (err) { alert('Failed to export dossier: ' + err.message); }
+    finally { setDossierLoading(false); }
   };
 
   const handleCopyReport = () => {
@@ -213,236 +177,175 @@ export default function Results({ results, topic, evidenceClaims, sourceProfiles
   const hasEvidence = evidenceClaims && evidenceClaims.totalClaims > 0;
 
   return (
-    <div className="lab-results-hub">
-      {/* HUB TAB HEADER */}
-      <div className="hub-tab-bar">
-        <button
-          className={`hub-tab${activeTab === 'report' ? ' active' : ''}`}
-          onClick={() => setActiveTab('report')}
-        >
-          📝 Executive Report
-        </button>
-
-        <button
-          className={`hub-tab${activeTab === 'evidence' ? ' active' : ''}`}
-          onClick={() => setActiveTab('evidence')}
-        >
-          🔬 Evidence & Claims
-          {hasEvidence && (
-            <span className="hub-tab-count">{evidenceClaims.totalClaims}</span>
-          )}
-        </button>
-
-        <button
-          className={`hub-tab${activeTab === 'sources' ? ' active' : ''}`}
-          onClick={() => setActiveTab('sources')}
-        >
-          🌐 Web News & Sources
-        </button>
-
-        <button
-          className={`hub-tab${activeTab === 'critic' ? ' active' : ''}`}
-          onClick={() => setActiveTab('critic')}
-        >
-          ⭐ Quality Audit Review
-        </button>
-
-        <button
-          className={`hub-tab${activeTab === 'telemetry' ? ' active' : ''}`}
-          onClick={() => setActiveTab('telemetry')}
-        >
-          🛠️ Agent Telemetry
-        </button>
-      </div>
-
-      {/* TAB PAYLOAD CONTENT */}
-      <div className="hub-content-area">
-        {/* EXECUTIVE REPORT TAB */}
-        {activeTab === 'report' && (
-          <div className="report-wrapper">
-            {results.writer ? (
-              <>
-                <div className="report-card">
-                  <div className="report-card-header">
-                    <div className="card-label purple">📝 Executive Research Document</div>
+    <div className="results-content">
+      {/* REPORT TAB */}
+      {activeTab === 'report' && (
+        <div>
+          {results.writer ? (
+            <>
+              {/* Cycle selector — visible when multiple cycles exist */}
+              {results.reportHistory && results.reportHistory.length > 1 && (
+                <div className="cycle-selector">
+                  <span className="cycle-label">View Cycle:</span>
+                  <button
+                    className={`cycle-tab ${!selectedCycle ? 'active' : ''}`}
+                    onClick={() => setSelectedCycle(null)}
+                  >
+                    Final Report
+                  </button>
+                  {results.reportHistory.map(h => (
                     <button
-                      className="copy-report-btn"
-                      onClick={handleCopyReport}
-                      title="Copy report text"
+                      key={h.cycle}
+                      className={`cycle-tab ${selectedCycle === h.cycle ? 'active' : ''}`}
+                      onClick={() => setSelectedCycle(h.cycle)}
                     >
-                      {copySuccess ? '✓ Copied to Clipboard' : '📋 Copy Text'}
+                      Cycle {h.cycle}
+                      <span className="cycle-meta">{h.words_count}w</span>
                     </button>
+                  ))}
+                </div>
+              )}
+
+              <div className="report-card">
+                <div className="report-card-header">
+                  <div className="report-card-label">
+                    <Icon name="writer" size={16} />
+                    {selectedCycle
+                      ? `Cycle ${selectedCycle} Report`
+                      : 'Executive Research Document'}
                   </div>
-
-                  <div
-                    className="md"
-                    dangerouslySetInnerHTML={{ __html: marked.parse(sanitizeReportMarkdown(results.writer)) }}
-                  />
-                </div>
-
-                {/* EXPORT ACTION SUITE */}
-                <div className="export-action-bar">
-                  <button
-                    className="action-btn docx-btn"
-                    onClick={handleDownloadDocx}
-                    disabled={docxLoading}
-                  >
-                    📘 {docxLoading ? 'Generating Word…' : 'Download Word (.docx)'}
-                  </button>
-
-                  <button
-                    className="action-btn pdf-btn"
-                    onClick={handleDownloadPdf}
-                    disabled={pdfLoading}
-                  >
-                    📕 {pdfLoading ? 'Generating PDF…' : 'Download PDF (.pdf)'}
-                  </button>
-
-                  <button
-                    className="action-btn md-btn"
-                    onClick={handleDownloadMarkdown}
-                    disabled={mdLoading}
-                  >
-                    📝 {mdLoading ? 'Generating Markdown…' : 'Download Markdown (.md)'}
-                  </button>
-
-                  <button
-                    className="action-btn dossier-btn"
-                    onClick={handleExportDossier}
-                    disabled={dossierLoading}
-                    title="Export comprehensive research dossier with report, plan, claims lineage, and source quality"
-                  >
-                    📁 {dossierLoading ? 'Compiling Dossier…' : 'Export Full Dossier (.md)'}
+                  <button className={`copy-btn ${copySuccess ? 'copied' : ''}`} onClick={handleCopyReport}>
+                    <Icon name={copySuccess ? 'check' : 'copy'} size={13} />
+                    {copySuccess ? 'Copied' : 'Copy'}
                   </button>
                 </div>
-              </>
-            ) : (
-              <div className="tab-pending-state">
-                <span className="pending-icon">✍️</span>
-                <p>Writer Agent is synthesizing research findings into an executive report...</p>
+                <div className="report-body">
+                  <div className="md" dangerouslySetInnerHTML={{
+                    __html: marked.parse(sanitizeReportMarkdown(
+                      selectedCycle
+                        ? (results.reportHistory.find(h => h.cycle === selectedCycle)?.report || results.writer)
+                        : results.writer
+                    ))
+                  }} />
+                </div>
               </div>
-            )}
-          </div>
-        )}
 
-        {/* EVIDENCE & CLAIMS TAB */}
-        {activeTab === 'evidence' && (
-          <div>
-            {hasEvidence ? (
-              <EvidencePanel
-                evidenceClaims={evidenceClaims}
-                sourceProfiles={sourceProfiles}
-              />
-            ) : (
-              <div className="tab-pending-state">
-                <span className="pending-icon">🔬</span>
-                <p>Evidence claims will appear after the Writer and Verification agents complete their analysis...</p>
+              <div className="export-bar">
+                <button className="export-btn pdf" onClick={handleDownloadPdf} disabled={pdfLoading}>
+                  <Icon name="download" size={14} />
+                  {pdfLoading ? 'Generating…' : 'PDF (.pdf)'}
+                </button>
+                <button className="export-btn docx" onClick={handleDownloadDocx} disabled={docxLoading}>
+                  <Icon name="download" size={14} />
+                  {docxLoading ? 'Generating…' : 'Word (.docx)'}
+                </button>
+                <button className="export-btn md-export" onClick={handleDownloadMarkdown} disabled={mdLoading}>
+                  <Icon name="download" size={14} />
+                  {mdLoading ? 'Generating…' : 'Markdown (.md)'}
+                </button>
+                <button className="export-btn dossier" onClick={handleExportDossier} disabled={dossierLoading}>
+                  <Icon name="folder" size={14} />
+                  {dossierLoading ? 'Compiling…' : 'Full Dossier'}
+                </button>
               </div>
-            )}
-          </div>
-        )}
-
-        {/* WEB NEWS & SOURCES TAB */}
-        {activeTab === 'sources' && (
-          <div>
-            {results.search || (results.sourceQualityProfiles && results.sourceQualityProfiles.length > 0) ? (
-              <NewsResources
-                rawText={results.search}
-                sourceProfiles={results.sourceQualityProfiles}
-                sourceQualitySummary={results.sourceQualitySummary}
-                failedSources={results.failedSources || []}
-                degradedModes={results.degradedModes || []}
-              />
-            ) : (
-              <div className="tab-pending-state">
-                <span className="pending-icon">🔍</span>
-                <p>Search Agent is discovering live web sources...</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* CRITIC QUALITY AUDIT TAB */}
-        {activeTab === 'critic' && (
-          <div>
-            {results.critic ? (
-              <div className="review-card">
-                <div className="card-label green">⭐ Critic Agent Quality Review</div>
-                <div
-                  className="md"
-                  dangerouslySetInnerHTML={{ __html: marked.parse(results.critic) }}
-                />
-              </div>
-            ) : (
-              <div className="tab-pending-state">
-                <span className="pending-icon">⭐</span>
-                <p>Critic Agent will perform quality review once report is complete...</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* TELEMETRY LOGS TAB */}
-        {activeTab === 'telemetry' && (
-          <div className="telemetry-wrapper">
-            <AgentTelemetryView results={results} />
-
-            <div className="telemetry-raw-logs-divider">
-              <h4>🔍 Raw Diagnostic Payloads & Logs</h4>
+            </>
+          ) : (
+            <div className="tab-pending">
+              <div className="tab-pending-icon"><Icon name="writer" size={24} /></div>
+              <p>Writer Agent is synthesizing research findings into an executive report…</p>
             </div>
+          )}
+        </div>
+      )}
 
-            <ExpandablePanel
-              label="Structured Research Plan (Planner Agent)"
-              agentLabel="Research Planner Output"
-              content={results.planner}
+      {/* EVIDENCE TAB */}
+      {activeTab === 'evidence' && (
+        <div>
+          {hasEvidence ? (
+            <EvidencePanel evidenceClaims={evidenceClaims} sourceProfiles={sourceProfiles} />
+          ) : (
+            <div className="tab-pending">
+              <div className="tab-pending-icon"><Icon name="shield" size={24} /></div>
+              <p>Evidence claims will appear after the Writer and Verification agents complete their analysis…</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* SOURCES TAB */}
+      {activeTab === 'sources' && (
+        <div>
+          {results.search || (results.sourceQualityProfiles && results.sourceQualityProfiles.length > 0) ? (
+            <NewsResources
+              rawText={results.search}
+              sourceProfiles={results.sourceQualityProfiles}
+              sourceQualitySummary={results.sourceQualitySummary}
+              failedSources={results.failedSources || []}
+              degradedModes={results.degradedModes || []}
             />
+          ) : (
+            <div className="tab-pending">
+              <div className="tab-pending-icon"><Icon name="search" size={24} /></div>
+              <p>Search Agent is discovering live web sources…</p>
+            </div>
+          )}
+        </div>
+      )}
 
+      {/* CRITIC TAB */}
+      {activeTab === 'critic' && (
+        <div>
+          {results.critic ? (
+            <div className="review-card">
+              <div className="review-card-header">
+                <div className="card-label">
+                  <Icon name="star" size={16} />
+                  Critic Agent Quality Review
+                </div>
+              </div>
+              <div className="review-body">
+                <div className="md" dangerouslySetInnerHTML={{ __html: marked.parse(results.critic) }} />
+              </div>
+            </div>
+          ) : (
+            <div className="tab-pending">
+              <div className="tab-pending-icon"><Icon name="star" size={24} /></div>
+              <p>Critic Agent will perform quality review once report is complete…</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TELEMETRY TAB */}
+      {activeTab === 'telemetry' && (
+        <div className="telemetry-container">
+          <AgentTelemetryView results={results} />
+          <div className="telemetry-divider"><h4>Raw Diagnostic Payloads</h4></div>
+          <ExpandablePanel label="Structured Research Plan (Planner Agent)" agentLabel="Planner Output" content={results.planner} />
+          <ExpandablePanel label="Concurrent Subtasks & Evidence Summary" agentLabel="Subtasks Telemetry" content={results.evidence} />
+          {results.failedSources && results.failedSources.length > 0 && (
             <ExpandablePanel
-              label="Concurrent Subtasks & Evidence Summary"
-              agentLabel="Subtasks Execution Telemetry"
-              content={results.evidence}
+              label={`Fault Tolerance: Skipped Sources (${results.failedSources.length})`}
+              agentLabel="Transparent Source Failures"
+              content={JSON.stringify(results.failedSources, null, 2)}
             />
-
-            {results.failedSources && results.failedSources.length > 0 && (
-              <ExpandablePanel
-                label={`Fault Tolerance Audit: Skipped Inaccessible Sources (${results.failedSources.length})`}
-                agentLabel="Transparent Source Failures (Never Fabricated, Gracefully Handled)"
-                content={JSON.stringify(results.failedSources, null, 2)}
-              />
-            )}
-
-            {results.degradedModes && results.degradedModes.length > 0 && (
-              <ExpandablePanel
-                label={`Resilience Degradation Modes Active (${results.degradedModes.length})`}
-                agentLabel="Active Graceful Degradation Modes"
-                content={JSON.stringify(results.degradedModes, null, 2)}
-              />
-            )}
-
+          )}
+          {results.degradedModes && results.degradedModes.length > 0 && (
             <ExpandablePanel
-              label="Deterministic Source Quality & Freshness Profiles"
-              agentLabel="Source Quality Profiles"
-              content={
-                results.sourceQualityProfiles && results.sourceQualityProfiles.length > 0
-                  ? JSON.stringify(results.sourceQualityProfiles, null, 2)
-                  : null
-              }
+              label={`Degradation Modes (${results.degradedModes.length})`}
+              agentLabel="Active Graceful Degradation"
+              content={JSON.stringify(results.degradedModes, null, 2)}
             />
-
-            <ExpandablePanel
-              label="Raw Search Agent Output Payload"
-              agentLabel="Search Agent Output"
-              content={results.search}
-            />
-
-            <ExpandablePanel
-              label="Raw Reader Agent Scraped Webpage Text"
-              agentLabel="Reader Agent Output"
-              content={results.reader}
-            />
-          </div>
-        )}
-      </div>
+          )}
+          <ExpandablePanel
+            label="Source Quality Profiles"
+            agentLabel="Quality Profiles"
+            content={results.sourceQualityProfiles?.length > 0 ? JSON.stringify(results.sourceQualityProfiles, null, 2) : null}
+          />
+          <ExpandablePanel label="Raw Search Output" agentLabel="Search Agent" content={results.search} />
+          <ExpandablePanel label="Raw Reader Output" agentLabel="Reader Agent" content={results.reader} />
+        </div>
+      )}
     </div>
   );
 }

@@ -419,6 +419,7 @@ def add_to_history(topic, state, user_id=None):
         "research_limitations": state.get("research_limitations", []),
         "telemetry": state.get("telemetry", {}),
         "agent_runs": state.get("agent_runs", []),
+        "report_history": state.get("report_history", []),
     }
     history.insert(0, entry)
     save_history(history)

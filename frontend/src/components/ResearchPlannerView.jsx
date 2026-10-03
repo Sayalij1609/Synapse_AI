@@ -1,160 +1,112 @@
 import React, { useState } from 'react';
-
-/**
- * ResearchPlannerView — Shows the Research Planner Agent's structured output:
- * - Research Objective
- * - Subtasks
- * - Search Queries
- * - Research Strategy
- *
- * Data comes from the backend via SSE; no business logic in this component.
- */
-function statusLabel(status) {
-  switch (status) {
-    case 'completed':
-      return 'Completed';
-    case 'running':
-    case 'in_progress':
-      return 'In Progress';
-    case 'failed':
-      return 'Failed';
-    case 'degraded':
-      return 'Degraded';
-    case 'pending':
-    default:
-      return 'Pending';
-  }
-}
+import Icon from './shared/Icon';
+import StatusBadge from './shared/StatusBadge';
 
 export default function ResearchPlannerView({ researchPlan, isRunning }) {
-  const [expanded, setExpanded] = useState(true);
+  const [open, setOpen] = useState(true);
 
-  if (!researchPlan && !isRunning) return null;
+  if (!researchPlan) return null;
 
-  const subtasks = researchPlan?.subtasks || [];
-  const searchQueries = researchPlan?.searchQueries || [];
+  const { objective, subtasks = [], searchQueries = [], strategy } = researchPlan;
+  if (!objective && subtasks.length === 0) return null;
 
   return (
-    <div className="planner-view-container">
-      <div
-        className={`planner-header ${expanded ? 'open' : ''}`}
-        onClick={() => setExpanded(e => !e)}
-      >
+    <div className="planner-container">
+      <div className="planner-header" onClick={() => setOpen(o => !o)}>
         <div className="planner-header-left">
-          <span className="planner-icon">📋</span>
+          <div className="planner-icon">
+            <Icon name="planner" size={18} />
+          </div>
           <div>
-            <h3 className="planner-title">Research Planner</h3>
-            <span className="planner-subtitle">
-              {researchPlan
-                ? `${subtasks.length} subtask${subtasks.length !== 1 ? 's' : ''} · ${searchQueries.length} quer${searchQueries.length !== 1 ? 'ies' : 'y'}`
-                : 'Decomposing research objective…'}
-            </span>
+            <div className="planner-title">Research Planner</div>
+            <div className="planner-subtitle">
+              {subtasks.length > 0 ? `${subtasks.length} subtasks generated` : 'Generating plan…'}
+            </div>
           </div>
         </div>
-        <span className="planner-toggle">{expanded ? '▲' : '▼'}</span>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+          {subtasks.length > 0 && (
+            <span className="planner-count">{subtasks.length}</span>
+          )}
+          <span className={`planner-toggle ${open ? 'open' : ''}`}>
+            <Icon name="chevronRight" size={16} />
+          </span>
+        </div>
       </div>
 
-      {expanded && (
-        <div className="planner-body">
-          {/* Pending state */}
-          {!researchPlan && isRunning && (
-            <div className="planner-pending">
-              <div className="planner-spinner" />
-              <p>Planner Agent is decomposing your research query into actionable subtasks…</p>
+      <div className={`planner-body ${open ? 'open' : ''}`}>
+        <div className="planner-content">
+          {objective && (
+            <div className="planner-objective">{objective}</div>
+          )}
+
+          {subtasks.length > 0 && (
+            <div className="subtask-grid">
+              {subtasks.map((st, idx) => {
+                const status = st.status || 'pending';
+                return (
+                  <div className={`subtask-card ${status}`} key={st.subtask_id || idx}>
+                    <div className="subtask-num">
+                      {status === 'completed' ? (
+                        <Icon name="check" size={14} strokeWidth={2.5} />
+                      ) : status === 'running' || status === 'in_progress' ? (
+                        <span className="spinner sm" />
+                      ) : (
+                        idx + 1
+                      )}
+                    </div>
+
+                    <div className="subtask-info">
+                      <div className="subtask-question">
+                        {st.question || st.subtask || `Subtask ${idx + 1}`}
+                      </div>
+
+                      {st.search_queries && st.search_queries.length > 0 && (
+                        <div className="subtask-queries">
+                          {st.search_queries.map((q, qi) => (
+                            <span className="subtask-query-chip" key={qi}>{q}</span>
+                          ))}
+                        </div>
+                      )}
+
+                      {(st.sources_discovered > 0 || st.docs_extracted > 0) && (
+                        <div className="subtask-stats">
+                          {st.sources_discovered > 0 && (
+                            <span className="subtask-stat discovered">
+                              <Icon name="globe" size={10} />
+                              {st.sources_discovered} found
+                            </span>
+                          )}
+                          {st.docs_extracted > 0 && (
+                            <span className="subtask-stat extracted">
+                              <Icon name="document" size={10} />
+                              {st.docs_extracted} extracted
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <StatusBadge status={status} showDot={false} />
+                  </div>
+                );
+              })}
             </div>
           )}
 
-          {researchPlan && (
-            <>
-              {/* Research Objective */}
-              <div className="planner-section">
-                <div className="planner-section-label">
-                  <span className="section-dot objective" />
-                  Research Objective
-                </div>
-                <div className="planner-objective-text">
-                  {researchPlan.objective}
-                </div>
+          {searchQueries && searchQueries.length > 0 && (
+            <div className="search-queries-section">
+              <h4>Search Queries</h4>
+              <div className="search-queries-grid">
+                {searchQueries.map((q, i) => (
+                  <span className="chip mono" key={i}>{q}</span>
+                ))}
               </div>
-
-              {/* Research Strategy */}
-              {researchPlan.strategy && (
-                <div className="planner-section">
-                  <div className="planner-section-label">
-                    <span className="section-dot strategy" />
-                    Research Strategy
-                  </div>
-                  <div className="planner-strategy-text">
-                    {researchPlan.strategy}
-                  </div>
-                </div>
-              )}
-
-              {/* Subtasks */}
-              {subtasks.length > 0 && (
-                <div className="planner-section">
-                  <div className="planner-section-label">
-                    <span className="section-dot subtasks" />
-                    Subtasks ({subtasks.length})
-                  </div>
-                  <div className="planner-subtask-list">
-                    {subtasks.map((st, idx) => (
-                      <div key={st.subtask_id || idx} className={`planner-subtask-card ${st.status || 'pending'}`}>
-                        <div className="subtask-index">{idx + 1}</div>
-                        <div className="subtask-content">
-                          <div className="subtask-question">
-                            {st.question || st.title || `Subtask ${idx + 1}`}
-                          </div>
-                          {st.search_queries && st.search_queries.length > 0 && (
-                            <div className="subtask-queries">
-                              {st.search_queries.map((q, qi) => (
-                                <span key={qi} className="query-chip">{q}</span>
-                              ))}
-                            </div>
-                          )}
-                          {/* Live stats when running or completed */}
-                          {(st.discovered_count > 0 || st.extracted_count > 0) && (
-                            <div className="subtask-live-stats">
-                              {st.discovered_count > 0 && (
-                                <span className="stat-chip discovered">🔗 {st.discovered_count} sources</span>
-                              )}
-                              {st.extracted_count > 0 && (
-                                <span className="stat-chip extracted">📄 {st.extracted_count} docs</span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                        <div className={`subtask-status-badge ${st.status || 'pending'}`}>
-                          {(st.status === 'running' || st.status === 'in_progress') && <span className="status-spinner" />}
-                          {statusLabel(st.status)}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Search Queries */}
-              {searchQueries.length > 0 && (
-                <div className="planner-section">
-                  <div className="planner-section-label">
-                    <span className="section-dot queries" />
-                    Search Queries ({searchQueries.length})
-                  </div>
-                  <div className="planner-query-grid">
-                    {searchQueries.map((q, idx) => (
-                      <div key={idx} className="planner-query-item">
-                        <span className="query-num">{idx + 1}</span>
-                        <span className="query-text">{q}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </>
+            </div>
           )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

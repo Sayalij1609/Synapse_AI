@@ -1,21 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  fetchProjects,
-  createProject,
-  deleteProject,
-  fetchProjectSessions,
-  deleteSession,
-  fetchSessionReports,
-  fetchSessionDossier,
-  triggerDownload,
+  fetchProjects, createProject, deleteProject,
+  fetchProjectSessions, deleteSession,
+  fetchSessionReports, fetchSessionDossier, triggerDownload,
 } from '../api';
+import Icon from './shared/Icon';
+import StatusBadge from './shared/StatusBadge';
 
 export default function UserWorkspace({
-  currentUser,
-  onOpenAuth,
-  onLogout,
-  onLaunchResearchInProject,
-  onLoadSessionInDashboard,
+  currentUser, onOpenAuth, onLogout,
+  onLaunchResearchInProject, onLoadSessionInDashboard,
 }) {
   const [projects, setProjects] = useState([]);
   const [selectedProjectId, setSelectedProjectId] = useState(null);
@@ -23,20 +17,15 @@ export default function UserWorkspace({
   const [loadingProjects, setLoadingProjects] = useState(false);
   const [loadingSessions, setLoadingSessions] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-
-  // New project modal / inline form state
   const [showNewProject, setShowNewProject] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [creatingProject, setCreatingProject] = useState(false);
-
-  // New session launch state
   const [sessionTopic, setSessionTopic] = useState('');
-
-  // Report versions modal state
   const [inspectingSessionId, setInspectingSessionId] = useState(null);
   const [reportVersions, setReportVersions] = useState([]);
   const [loadingReports, setLoadingReports] = useState(false);
+  const [exportingSessionId, setExportingSessionId] = useState(null);
 
   const loadProjects = useCallback(async () => {
     if (!currentUser) return;
@@ -45,45 +34,27 @@ export default function UserWorkspace({
     try {
       const data = await fetchProjects();
       setProjects(data || []);
-      if (data && data.length > 0 && !selectedProjectId) {
-        setSelectedProjectId(data[0].id);
-      }
-    } catch (err) {
-      setErrorMsg(err.message || 'Failed to load projects');
-    } finally {
-      setLoadingProjects(false);
-    }
+      if (data?.length > 0 && !selectedProjectId) setSelectedProjectId(data[0].id);
+    } catch (err) { setErrorMsg(err.message || 'Failed to load projects'); }
+    finally { setLoadingProjects(false); }
   }, [currentUser, selectedProjectId]);
 
   useEffect(() => {
-    if (currentUser) {
-      loadProjects();
-    } else {
-      setProjects([]);
-      setSelectedProjectId(null);
-      setSessions([]);
-    }
+    if (currentUser) loadProjects();
+    else { setProjects([]); setSelectedProjectId(null); setSessions([]); }
   }, [currentUser, loadProjects]);
 
-  const loadSessions = useCallback(async (projectId) => {
-    if (!projectId) return;
+  const loadSessions = useCallback(async (pid) => {
+    if (!pid) return;
     setLoadingSessions(true);
-    try {
-      const data = await fetchProjectSessions(projectId);
-      setSessions(data || []);
-    } catch (err) {
-      console.error('Failed to load project sessions:', err);
-    } finally {
-      setLoadingSessions(false);
-    }
+    try { setSessions(await fetchProjectSessions(pid) || []); }
+    catch { /* no-op */ }
+    finally { setLoadingSessions(false); }
   }, []);
 
   useEffect(() => {
-    if (selectedProjectId) {
-      loadSessions(selectedProjectId);
-    } else {
-      setSessions([]);
-    }
+    if (selectedProjectId) loadSessions(selectedProjectId);
+    else setSessions([]);
   }, [selectedProjectId, loadSessions]);
 
   const handleCreateProject = async (e) => {
@@ -92,43 +63,25 @@ export default function UserWorkspace({
     setCreatingProject(true);
     try {
       const created = await createProject(newTitle.trim(), newDesc.trim());
-      setNewTitle('');
-      setNewDesc('');
-      setShowNewProject(false);
+      setNewTitle(''); setNewDesc(''); setShowNewProject(false);
       await loadProjects();
       setSelectedProjectId(created.id);
-    } catch (err) {
-      alert(err.message || 'Failed to create project');
-    } finally {
-      setCreatingProject(false);
-    }
+    } catch (err) { alert(err.message); }
+    finally { setCreatingProject(false); }
   };
 
-  const handleDeleteProject = async (e, projectId) => {
+  const handleDeleteProject = async (e, pid) => {
     e.stopPropagation();
-    if (!window.confirm('Are you sure you want to delete this project and all its research sessions?')) return;
-    try {
-      await deleteProject(projectId);
-      if (selectedProjectId === projectId) {
-        setSelectedProjectId(null);
-      }
-      await loadProjects();
-    } catch (err) {
-      alert(err.message || 'Failed to delete project');
-    }
+    if (!window.confirm('Delete this project and all sessions?')) return;
+    try { await deleteProject(pid); if (selectedProjectId === pid) setSelectedProjectId(null); await loadProjects(); }
+    catch (err) { alert(err.message); }
   };
 
-  const handleDeleteSession = async (e, sessionId) => {
+  const handleDeleteSession = async (e, sid) => {
     e.stopPropagation();
     if (!window.confirm('Delete this research session?')) return;
-    try {
-      await deleteSession(sessionId);
-      if (selectedProjectId) {
-        loadSessions(selectedProjectId);
-      }
-    } catch (err) {
-      alert(err.message || 'Failed to delete session');
-    }
+    try { await deleteSession(sid); if (selectedProjectId) loadSessions(selectedProjectId); }
+    catch (err) { alert(err.message); }
   };
 
   const handleLaunchSession = (e) => {
@@ -139,67 +92,50 @@ export default function UserWorkspace({
     onLaunchResearchInProject(topic, selectedProjectId);
   };
 
-  const handleViewReports = async (e, sessionId) => {
+  const handleViewReports = async (e, sid) => {
     e.stopPropagation();
-    setInspectingSessionId(sessionId);
+    setInspectingSessionId(sid);
     setLoadingReports(true);
-    try {
-      const data = await fetchSessionReports(sessionId);
-      setReportVersions(data || []);
-    } catch (err) {
-      alert(err.message || 'Failed to load report versions');
-    } finally {
-      setLoadingReports(false);
-    }
+    try { setReportVersions(await fetchSessionReports(sid) || []); }
+    catch (err) { alert(err.message); }
+    finally { setLoadingReports(false); }
   };
-
-  const [exportingSessionId, setExportingSessionId] = useState(null);
 
   const handleExportDossier = async (e, session) => {
     e.stopPropagation();
     setExportingSessionId(session.id);
     try {
       const dossier = await fetchSessionDossier(session.id);
-      const safeTopic = (session.topic || 'research_session')
-        .toLowerCase()
-        .replace(/[^a-z0-9_-]/g, '_')
-        .slice(0, 40);
+      const safeTopic = (session.topic || 'research_session').toLowerCase().replace(/[^a-z0-9_-]/g, '_').slice(0, 40);
       const mdContent = dossier.dossier_markdown || `# SYNAPSE AI — Research Dossier\n**Topic**: ${session.topic}\n\n${dossier.report?.content_markdown || ''}`;
       triggerDownload(mdContent, `synapse_dossier_${safeTopic}.md`, 'text/markdown;charset=utf-8');
-    } catch (err) {
-      alert(err.message || 'Failed to export session dossier');
-    } finally {
-      setExportingSessionId(null);
-    }
+    } catch (err) { alert(err.message); }
+    finally { setExportingSessionId(null); }
   };
 
-  // If not logged in, render protected view notice
+  // Protected gate
   if (!currentUser) {
     return (
-      <div className="workspace-container protected-gate">
+      <div className="workspace-gate">
         <div className="gate-card">
-          <div className="gate-icon">🔒</div>
-          <h2>Protected Research Workspace</h2>
-          <p>
-            SYNAPSE AI isolates your research projects, sessions, sources, reports, and agent
-            telemetry. Unauthorized users cannot access your data.
-          </p>
-          <div className="gate-features">
-            <div className="gate-feat-item">
-              <span className="feat-check">✓</span> User-specific research projects
-            </div>
-            <div className="gate-feat-item">
-              <span className="feat-check">✓</span> Isolated vector evidence chunks & citations
-            </div>
-            <div className="gate-feat-item">
-              <span className="feat-check">✓</span> Versioned report storage & audit trail
-            </div>
-            <div className="gate-feat-item">
-              <span className="feat-check">✓</span> Deterministic source quality analytics
-            </div>
+          <div className="section-icon accent" style={{ width: 56, height: 56, borderRadius: 'var(--radius-lg)', fontSize: '1.4rem', margin: '0 auto var(--space-5)' }}>
+            <Icon name="lock" size={24} />
           </div>
-          <button className="gate-cta-btn" onClick={onOpenAuth}>
-            Sign In / Register to Access Workspace 🚀
+          <h2 style={{ textAlign: 'center', marginBottom: 'var(--space-3)', fontSize: 'var(--text-2xl)', fontWeight: 800 }}>
+            Protected Workspace
+          </h2>
+          <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: 'var(--space-6)', maxWidth: 360, margin: '0 auto var(--space-6)' }}>
+            Sign in to access isolated research projects, versioned reports, and private source evidence.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', marginBottom: 'var(--space-6)', padding: '0 var(--space-4)' }}>
+            {['User-specific research projects', 'Isolated vector evidence & citations', 'Versioned report storage & audit trail', 'Deterministic source quality analytics'].map(f => (
+              <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
+                <Icon name="check" size={14} style={{ color: 'var(--accent)' }} /> {f}
+              </div>
+            ))}
+          </div>
+          <button className="btn btn-primary btn-lg" onClick={onOpenAuth} style={{ width: '100%' }}>
+            Sign In / Register <Icon name="arrowRight" size={16} />
           </button>
         </div>
       </div>
@@ -209,286 +145,188 @@ export default function UserWorkspace({
   const activeProject = projects.find((p) => p.id === selectedProjectId);
 
   return (
-    <div className="workspace-container">
-      {/* Top Profile & Header Bar */}
-      <div className="workspace-header-bar">
-        <div className="workspace-title-group">
-          <h2>
-            <span className="workspace-icon">📁</span> Research Workspaces
-          </h2>
-          <span className="workspace-badge-tag">Multi-Tenant Isolated</span>
+    <div className="workspace-view">
+      {/* Header */}
+      <div className="workspace-header">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+          <div className="section-icon amber"><Icon name="folder" size={18} /></div>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 'var(--text-lg)' }}>Research Workspace</div>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>Multi-Tenant Isolated</div>
+          </div>
         </div>
-
-        <div className="workspace-user-card">
-          <div className="user-avatar-circle">
-            {(currentUser.full_name || currentUser.email || 'U')[0].toUpperCase()}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+            <div style={{ width: 32, height: 32, borderRadius: 'var(--radius-full)', background: 'var(--gradient-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 'var(--text-sm)', color: '#fff' }}>
+              {(currentUser.full_name || currentUser.email || 'U')[0].toUpperCase()}
+            </div>
+            <div>
+              <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{currentUser.full_name || currentUser.username || currentUser.email}</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-faint)' }}>{currentUser.email}</div>
+            </div>
           </div>
-          <div className="user-info-text">
-            <span className="user-display-name">
-              {currentUser.full_name || currentUser.username || currentUser.email}
-            </span>
-            <span className="user-email-text">{currentUser.email}</span>
-          </div>
-          <button className="workspace-logout-btn" onClick={onLogout} title="Sign Out">
-            Sign Out
-          </button>
+          <button className="btn btn-ghost btn-sm" onClick={onLogout}>Sign Out</button>
         </div>
       </div>
 
-      {errorMsg && <div className="workspace-error-banner">{errorMsg}</div>}
+      {errorMsg && <div className="err" style={{ margin: 'var(--space-4) 0' }}>{errorMsg}</div>}
 
       <div className="workspace-layout">
-        {/* Left Column: Projects List */}
-        <aside className="workspace-projects-sidebar">
-          <div className="projects-header">
-            <h3>Your Projects ({projects.length})</h3>
-            <button
-              className="add-project-btn"
-              onClick={() => setShowNewProject(true)}
-              title="Create new project"
-            >
+        {/* Left sidebar */}
+        <aside className="workspace-sidebar">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-4)' }}>
+            <h3 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--text-secondary)' }}>Projects ({projects.length})</h3>
+            <button className="btn btn-primary btn-sm" onClick={() => setShowNewProject(true)}>
               + New
             </button>
           </div>
 
           {showNewProject && (
-            <form onSubmit={handleCreateProject} className="new-project-card-form">
-              <h4>Create Research Project</h4>
-              <input
-                type="text"
-                required
-                autoFocus
-                placeholder="Project title (e.g. Quantum Computing 2026)"
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-              />
-              <textarea
-                placeholder="Brief description or research objectives..."
-                rows="2"
-                value={newDesc}
-                onChange={(e) => setNewDesc(e.target.value)}
-              />
-              <div className="form-actions-row">
-                <button
-                  type="button"
-                  className="btn-cancel"
-                  onClick={() => setShowNewProject(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="btn-submit"
-                  disabled={creatingProject}
-                >
-                  {creatingProject ? 'Creating...' : 'Create Project'}
+            <form onSubmit={handleCreateProject} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-active)', borderRadius: 'var(--radius-md)', padding: 'var(--space-4)', marginBottom: 'var(--space-4)' }}>
+              <input className="input-field" type="text" required autoFocus placeholder="Project title" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} style={{ marginBottom: 'var(--space-2)' }} />
+              <textarea className="input-field" placeholder="Description…" rows="2" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} style={{ marginBottom: 'var(--space-3)', resize: 'vertical' }} />
+              <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowNewProject(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary btn-sm" disabled={creatingProject}>
+                  {creatingProject ? 'Creating…' : 'Create'}
                 </button>
               </div>
             </form>
           )}
 
-          {loadingProjects && <div className="loading-state">Loading projects...</div>}
+          {loadingProjects && <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', padding: 'var(--space-4)' }}>Loading…</div>}
 
           {!loadingProjects && projects.length === 0 && !showNewProject && (
-            <div className="empty-projects-state">
-              <p>No projects yet.</p>
-              <button
-                className="btn-create-first"
-                onClick={() => setShowNewProject(true)}
-              >
-                Create your first project
-              </button>
+            <div style={{ textAlign: 'center', padding: 'var(--space-8) var(--space-4)', color: 'var(--text-faint)' }}>
+              <Icon name="folder" size={24} style={{ marginBottom: 'var(--space-3)', opacity: 0.4 }} />
+              <p style={{ fontSize: 'var(--text-sm)', marginBottom: 'var(--space-3)' }}>No projects yet</p>
+              <button className="btn btn-secondary btn-sm" onClick={() => setShowNewProject(true)}>Create First Project</button>
             </div>
           )}
 
-          <div className="project-items-list">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
             {projects.map((proj) => (
               <div
                 key={proj.id}
-                className={`project-list-card ${proj.id === selectedProjectId ? 'active' : ''}`}
+                className={`ws-project-item ${proj.id === selectedProjectId ? 'active' : ''}`}
                 onClick={() => setSelectedProjectId(proj.id)}
               >
-                <div className="proj-card-top">
-                  <h4 className="proj-title">{proj.title}</h4>
-                  <button
-                    className="proj-delete-btn"
-                    onClick={(e) => handleDeleteProject(e, proj.id)}
-                    title="Delete project"
-                  >
-                    🗑️
-                  </button>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 600, fontSize: 'var(--text-sm)', marginBottom: '2px' }}>{proj.title}</div>
+                  {proj.description && (
+                    <div style={{ fontSize: '11px', color: 'var(--text-faint)', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                      {proj.description}
+                    </div>
+                  )}
+                  <div style={{ fontSize: '10px', color: 'var(--text-faint)', marginTop: '4px' }}>
+                    {new Date(proj.created_at).toLocaleDateString()}
+                  </div>
                 </div>
-                {proj.description && (
-                  <p className="proj-desc-text">{proj.description}</p>
-                )}
-                <div className="proj-meta-row">
-                  <span className="proj-meta-tag">
-                    🕒 {new Date(proj.created_at).toLocaleDateString()}
-                  </span>
-                </div>
+                <button className="btn btn-ghost btn-icon" onClick={(e) => handleDeleteProject(e, proj.id)} title="Delete" style={{ color: 'var(--text-faint)', flexShrink: 0 }}>
+                  <Icon name="x" size={12} />
+                </button>
               </div>
             ))}
           </div>
         </aside>
 
-        {/* Right Column: Active Project Details & Sessions */}
-        <main className="workspace-main-content">
+        {/* Main content */}
+        <main className="workspace-main">
           {activeProject ? (
             <div>
-              <div className="project-detail-banner">
-                <div className="proj-detail-info">
-                  <h3>{activeProject.title}</h3>
-                  {activeProject.description && (
-                    <p className="proj-banner-desc">{activeProject.description}</p>
-                  )}
-                  <div className="proj-detail-tags">
-                    <span className="detail-tag">ID: {activeProject.id.slice(0, 8)}...</span>
-                    <span className="detail-tag">Sessions: {sessions.length}</span>
-                    <span className="detail-tag">
-                      Created: {new Date(activeProject.created_at).toLocaleDateString()}
-                    </span>
-                  </div>
+              {/* Project banner */}
+              <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-6)', marginBottom: 'var(--space-6)' }}>
+                <h3 style={{ fontSize: 'var(--text-xl)', fontWeight: 700, marginBottom: 'var(--space-2)' }}>{activeProject.title}</h3>
+                {activeProject.description && (
+                  <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginBottom: 'var(--space-4)' }}>{activeProject.description}</p>
+                )}
+                <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-5)' }}>
+                  <span className="chip mono">{activeProject.id.slice(0, 8)}…</span>
+                  <span className="chip cyan">{sessions.length} sessions</span>
+                  <span className="chip">{new Date(activeProject.created_at).toLocaleDateString()}</span>
                 </div>
 
-                {/* Quick Launch form bound to this project */}
-                <form onSubmit={handleLaunchSession} className="project-quick-launch-form">
-                  <div className="launch-input-wrapper">
-                    <input
-                      type="text"
-                      required
-                      placeholder="Start autonomous research inside this project..."
-                      value={sessionTopic}
-                      onChange={(e) => setSessionTopic(e.target.value)}
-                    />
-                    <button type="submit" className="launch-in-proj-btn">
-                      Research 🚀
+                {/* Quick launch */}
+                <form onSubmit={handleLaunchSession}>
+                  <div className="search-input-wrap">
+                    <Icon name="bolt" size={16} />
+                    <input className="search-input" type="text" required placeholder="Start research in this project…" value={sessionTopic} onChange={(e) => setSessionTopic(e.target.value)} />
+                    <button type="submit" className="search-run-btn" style={{ padding: 'var(--space-2) var(--space-4)' }}>
+                      Research <Icon name="arrowRight" size={14} />
                     </button>
                   </div>
                 </form>
               </div>
 
-              {/* Sessions Table / List */}
-              <div className="project-sessions-section">
-                <div className="sessions-header-row">
-                  <h4>Research Sessions ({sessions.length})</h4>
-                  <button
-                    className="refresh-sessions-btn"
-                    onClick={() => loadSessions(activeProject.id)}
-                  >
-                    ↻ Refresh
-                  </button>
-                </div>
-
-                {loadingSessions && (
-                  <div className="loading-state">Loading sessions...</div>
-                )}
-
-                {!loadingSessions && sessions.length === 0 && (
-                  <div className="empty-sessions-notice">
-                    <div className="empty-icon">🔬</div>
-                    <p>No research sessions recorded in this project yet.</p>
-                    <p className="subtext">
-                      Type a topic above to initiate autonomous multi-agent research.
-                    </p>
-                  </div>
-                )}
-
-                {!loadingSessions && sessions.length > 0 && (
-                  <div className="sessions-table-container">
-                    <table className="sessions-table">
-                      <thead>
-                        <tr>
-                          <th>Topic / Name</th>
-                          <th>Status</th>
-                          <th>Verification</th>
-                          <th>Date</th>
-                          <th>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {sessions.map((s) => (
-                          <tr key={s.id}>
-                            <td>
-                              <div className="session-topic-cell">
-                                <span className="topic-text">{s.topic}</span>
-                                {s.session_name && (
-                                  <span className="session-name-tag">{s.session_name}</span>
-                                )}
-                              </div>
-                            </td>
-                            <td>
-                              <span className={`status-badge-pill ${s.status?.toLowerCase() || 'pending'}`}>
-                                {s.status || 'PENDING'}
-                              </span>
-                            </td>
-                            <td>
-                              <span
-                                className={`verification-badge-pill ${
-                                  s.verification_status === 'PASS'
-                                    ? 'pass'
-                                    : s.verification_status === 'RESEARCH_REQUIRED'
-                                    ? 'fail'
-                                    : 'unknown'
-                                }`}
-                              >
-                                {s.verification_status || 'UNVERIFIED'}
-                              </span>
-                            </td>
-                            <td className="date-cell">
-                              {s.created_at
-                                ? new Date(s.created_at).toLocaleString([], {
-                                    month: 'short',
-                                    day: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                  })
-                                : '—'}
-                            </td>
-                            <td>
-                              <div className="session-action-btns">
-                                <button
-                                  className="action-btn-view"
-                                  onClick={() => onLoadSessionInDashboard(s.id)}
-                                  title="View Full Report & Evidence"
-                                >
-                                  View
-                                </button>
-                                <button
-                                  className="action-btn-versions"
-                                  onClick={(e) => handleViewReports(e, s.id)}
-                                  title="View Report Versions"
-                                >
-                                  Versions
-                                </button>
-                                <button
-                                  className="action-btn-dossier"
-                                  onClick={(e) => handleExportDossier(e, s)}
-                                  disabled={exportingSessionId === s.id}
-                                  title="Export Comprehensive Research Dossier (.md)"
-                                >
-                                  {exportingSessionId === s.id ? '…' : 'Dossier 📥'}
-                                </button>
-                                <button
-                                  className="action-btn-del"
-                                  onClick={(e) => handleDeleteSession(e, s.id)}
-                                  title="Delete Session"
-                                >
-                                  ✕
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+              {/* Sessions */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-4)' }}>
+                <h4 style={{ fontSize: 'var(--text-base)', fontWeight: 700 }}>Sessions ({sessions.length})</h4>
+                <button className="btn btn-ghost btn-sm" onClick={() => loadSessions(activeProject.id)}>
+                  <Icon name="refresh" size={12} /> Refresh
+                </button>
               </div>
+
+              {loadingSessions && <div style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)', padding: 'var(--space-6)' }}>Loading sessions…</div>}
+
+              {!loadingSessions && sessions.length === 0 && (
+                <div style={{ textAlign: 'center', padding: 'var(--space-10)', color: 'var(--text-faint)' }}>
+                  <Icon name="beaker" size={28} style={{ marginBottom: 'var(--space-3)', opacity: 0.4 }} />
+                  <p style={{ fontSize: 'var(--text-sm)' }}>No sessions yet. Start research above.</p>
+                </div>
+              )}
+
+              {!loadingSessions && sessions.length > 0 && (
+                <div className="sessions-table-wrap">
+                  <table className="ws-table">
+                    <thead>
+                      <tr>
+                        <th>Topic</th>
+                        <th>Status</th>
+                        <th>Verification</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sessions.map((s) => (
+                        <tr key={s.id}>
+                          <td>
+                            <div style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>{s.topic}</div>
+                            {s.session_name && <div style={{ fontSize: '10px', color: 'var(--text-faint)' }}>{s.session_name}</div>}
+                          </td>
+                          <td><StatusBadge status={s.status?.toLowerCase() || 'pending'} showDot /></td>
+                          <td>
+                            <span className={`status-badge ${s.verification_status === 'PASS' ? 'completed' : s.verification_status === 'RESEARCH_REQUIRED' ? 'failed' : 'idle'}`}>
+                              {s.verification_status || 'UNVERIFIED'}
+                            </span>
+                          </td>
+                          <td style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                            {s.created_at ? new Date(s.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
+                          </td>
+                          <td>
+                            <div style={{ display: 'flex', gap: 'var(--space-1)' }}>
+                              <button className="btn btn-ghost btn-sm" onClick={() => onLoadSessionInDashboard(s.id)}>View</button>
+                              <button className="btn btn-ghost btn-sm" onClick={(e) => handleViewReports(e, s.id)}>Versions</button>
+                              <button className="btn btn-ghost btn-sm" onClick={(e) => handleExportDossier(e, s)} disabled={exportingSessionId === s.id}>
+                                {exportingSessionId === s.id ? '…' : 'Dossier'}
+                              </button>
+                              <button className="btn btn-ghost btn-icon" onClick={(e) => handleDeleteSession(e, s.id)} style={{ color: 'var(--danger)' }}>
+                                <Icon name="x" size={12} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           ) : (
-            <div className="no-project-selected">
-              <h3>Select or create a research project on the left.</h3>
-              <p>Your research sessions, sources, and reports are saved per project.</p>
+            <div style={{ textAlign: 'center', padding: 'var(--space-20)', color: 'var(--text-faint)' }}>
+              <Icon name="folder" size={36} style={{ marginBottom: 'var(--space-4)', opacity: 0.3 }} />
+              <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 600, marginBottom: 'var(--space-2)' }}>Select a Project</h3>
+              <p style={{ fontSize: 'var(--text-sm)' }}>Choose or create a project on the left to view sessions.</p>
             </div>
           )}
         </main>
@@ -497,50 +335,32 @@ export default function UserWorkspace({
       {/* Report Versions Modal */}
       {inspectingSessionId && (
         <div className="modal-overlay" onClick={() => setInspectingSessionId(null)}>
-          <div
-            className="modal-container report-versions-modal"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 560 }}>
             <div className="modal-header">
-              <h3>Report Versions for Session {inspectingSessionId.slice(0, 8)}...</h3>
-              <button
-                className="modal-close-btn"
-                onClick={() => setInspectingSessionId(null)}
-              >
-                ✕
-              </button>
+              <div className="modal-title">Report Versions</div>
+              <button className="modal-close" onClick={() => setInspectingSessionId(null)}><Icon name="x" size={18} /></button>
             </div>
-
             <div className="modal-body">
-              {loadingReports && <div className="loading-state">Loading versions...</div>}
-              {!loadingReports && reportVersions.length === 0 && (
-                <p>No report versions archived for this session.</p>
-              )}
-              {!loadingReports && reportVersions.length > 0 && (
-                <div className="report-versions-list">
-                  {reportVersions.map((r) => (
-                    <div key={r.id} className="report-version-card">
-                      <div className="version-header">
-                        <span className="version-pill">Version {r.version}</span>
-                        <span className="version-date">
-                          {new Date(r.created_at).toLocaleString()}
-                        </span>
-                      </div>
-                      <div className="version-stats">
-                        <span>Word count: {r.word_count || '—'}</span>
-                        <span>Confidence: {(r.confidence_score * 100).toFixed(0)}%</span>
-                        <span>Citations: {r.citation_count || 0}</span>
-                      </div>
-                      {r.feedback && (
-                        <div className="version-feedback">
-                          <strong>Verification Feedback:</strong>
-                          <p>{r.feedback}</p>
-                        </div>
-                      )}
+              {loadingReports && <div style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>Loading…</div>}
+              {!loadingReports && reportVersions.length === 0 && <p style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>No versions archived.</p>}
+              {!loadingReports && reportVersions.map((r) => (
+                <div key={r.id} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: 'var(--space-4)', marginBottom: 'var(--space-3)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-2)' }}>
+                    <span className="chip accent" style={{ fontWeight: 700 }}>Version {r.version}</span>
+                    <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>{new Date(r.created_at).toLocaleString()}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 'var(--space-3)', fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
+                    <span>Words: {r.word_count || '—'}</span>
+                    <span>Confidence: {(r.confidence_score * 100).toFixed(0)}%</span>
+                    <span>Citations: {r.citation_count || 0}</span>
+                  </div>
+                  {r.feedback && (
+                    <div style={{ marginTop: 'var(--space-3)', fontSize: 'var(--text-xs)', color: 'var(--text-muted)', fontStyle: 'italic', lineHeight: 1.5 }}>
+                      {r.feedback}
                     </div>
-                  ))}
+                  )}
                 </div>
-              )}
+              ))}
             </div>
           </div>
         </div>

@@ -1,165 +1,217 @@
-import React from 'react';
-
-const FEATURED_TOPICS = [
-  {
-    title: "Autonomous AI Agents & Multi-Agent Intelligence",
-    category: "Artificial Intelligence",
-    icon: "🤖",
-    desc: "Agentic workflows, recursive reasoning systems, memory architectures, and production benchmarks.",
-  },
-  {
-    title: "CRISPR-Cas9 Gene Editing & Clinical Breakthroughs",
-    category: "Biotechnology",
-    icon: "🧬",
-    desc: "Clinical trials, off-target minimization, in-vivo delivery platforms, and regulatory approvals.",
-  },
-  {
-    title: "Commercial Nuclear Fusion Net Energy Milestones",
-    category: "Deep Tech",
-    icon: "⚛️",
-    desc: "Tokamak magnetic confinement, laser inertial ignition, high-temperature superconductors, and funding.",
-  },
-  {
-    title: "Fault-Tolerant Quantum Computing Architectures",
-    category: "Quantum Hardware",
-    icon: "💻",
-    desc: "Logical qubit error correction, topological qubits, and commercial quantum advantage roadmaps.",
-  },
-];
+import React, { useState, useEffect } from 'react';
+import Icon from './shared/Icon';
 
 const AGENT_SQUAD = [
   {
-    id: "search",
-    name: "Search Agent",
-    role: "Web Discovery",
-    emoji: "🔍",
-    gradient: "linear-gradient(135deg, #7c6cf0, #a855f7)",
+    id: "planner", name: "Planner Agent", role: "Research Decomposition",
+    icon: "planner", gradient: "linear-gradient(135deg, #6C5CE7, #a29bfe)",
+    delay: 0,
+    tools: ["Query Analysis", "Subtask Generation", "Strategy Planning"],
+    description: "Breaks complex queries into 5–8 focused subtasks with targeted search queries.",
+  },
+  {
+    id: "search", name: "Search Agent", role: "Web Discovery",
+    icon: "search", gradient: "linear-gradient(135deg, #0984e3, #74b9ff)",
+    delay: 1,
     tools: ["Query Intelligence", "Live Web Search", "Source Indexing"],
-    description:
-      "Formulates targeted search queries from natural language requests, scanning live global web indexes to discover verified sources.",
+    description: "Scans live global web indexes to discover verified sources in real-time.",
   },
   {
-    id: "reader",
-    name: "Reader Agent",
-    role: "Content Extraction",
-    emoji: "📄",
-    gradient: "linear-gradient(135deg, #00b894, #00cec9)",
+    id: "reader", name: "Reader Agent", role: "Content Extraction",
+    icon: "reader", gradient: "linear-gradient(135deg, #00b894, #55efc4)",
+    delay: 2,
     tools: ["DOM Parser", "HTML Cleaning", "Content Filtering"],
-    description:
-      "Selects top web URLs, scrapes full page text structures, eliminates scripts and nav clutter, and extracts rich evidence payload.",
+    description: "Scrapes full page text, eliminates clutter, and extracts rich evidence payloads.",
   },
   {
-    id: "writer",
-    name: "Writer Agent",
-    role: "Executive Synthesis",
-    emoji: "✍️",
-    gradient: "linear-gradient(135deg, #f5a623, #ff7675)",
+    id: "retrieval", name: "Retrieval Agent", role: "Vector Indexing",
+    icon: "brain", gradient: "linear-gradient(135deg, #e17055, #fab1a0)",
+    delay: 3,
+    tools: ["ChromaDB Indexing", "Semantic Search", "Evidence Ranking"],
+    description: "Embeds content into a vector store and retrieves semantically relevant evidence.",
+  },
+  {
+    id: "writer", name: "Writer Agent", role: "Executive Synthesis",
+    icon: "writer", gradient: "linear-gradient(135deg, #2B2554, #6c5ce7)",
+    delay: 4,
     tools: ["Neural Synthesis", "Structured Markdown", "Citation Engine"],
-    description:
-      "Synthesizes raw evidence into rigorous, professional executive reports complete with key findings, introduction, and citations.",
+    description: "Synthesizes raw evidence into rigorous executive reports with inline citations.",
   },
   {
-    id: "critic",
-    name: "Critic Agent",
-    role: "Quality Audit",
-    emoji: "⭐",
-    gradient: "linear-gradient(135deg, #e84393, #6c5ce7)",
-    tools: ["QA Rubric Evaluation", "Fact Verification", "Score Assessment"],
-    description:
-      "Audits the draft report for accuracy, structure, completeness, and clarity — assigning a score (1-10) and improvement points.",
+    id: "verifier", name: "Verifier Agent", role: "Autonomous Audit",
+    icon: "shield", gradient: "linear-gradient(135deg, #d63031, #ff7675)",
+    delay: 5,
+    tools: ["Claim Verification", "Fact Checking", "Score Assessment"],
+    description: "Audits every claim for evidence grounding and triggers additional research cycles.",
   },
 ];
 
+const PIPELINE_STEPS = [
+  { step: 1, title: 'Query Input', icon: 'bolt', desc: 'Natural language intent', color: '#10B981' },
+  { step: 2, title: 'Decompose', icon: 'planner', desc: 'Split into subtasks', color: '#6C5CE7' },
+  { step: 3, title: 'Search', icon: 'search', desc: 'Live web discovery', color: '#0984e3' },
+  { step: 4, title: 'Extract', icon: 'reader', desc: 'Clean content', color: '#00b894' },
+  { step: 5, title: 'Index', icon: 'brain', desc: 'Vector embedding', color: '#e17055' },
+  { step: 6, title: 'Synthesize', icon: 'writer', desc: 'Build report', color: '#6C5CE7' },
+  { step: 7, title: 'Verify', icon: 'shield', desc: 'Audit & export', color: '#d63031' },
+];
+
+const FEATURED_TOPICS = [
+  { title: "Autonomous AI Agents & Multi-Agent Intelligence", category: "Artificial Intelligence", icon: "brain", desc: "Agentic workflows, recursive reasoning systems, and production benchmarks." },
+  { title: "CRISPR-Cas9 Gene Editing Breakthroughs", category: "Biotechnology", icon: "sparkles", desc: "Clinical trials, off-target minimization, and regulatory approvals." },
+  { title: "Commercial Nuclear Fusion Energy Milestones", category: "Deep Tech", icon: "bolt", desc: "Tokamak confinement, laser ignition, and high-temperature superconductors." },
+  { title: "Fault-Tolerant Quantum Computing", category: "Quantum Hardware", icon: "chartBar", desc: "Logical qubit error correction and commercial quantum advantage roadmaps." },
+];
+
+function AnimatedPipeline() {
+  const [activeStep, setActiveStep] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setActiveStep(prev => (prev + 1) % PIPELINE_STEPS.length);
+    }, 2000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div className="pipeline-animation">
+      <div className="pipeline-track-anim">
+        {PIPELINE_STEPS.map((node, idx) => {
+          const isActive = idx === activeStep;
+          const isPassed = idx < activeStep;
+          return (
+            <React.Fragment key={node.step}>
+              <div className={`pipeline-node ${isActive ? 'active' : ''} ${isPassed ? 'passed' : ''}`}>
+                <div
+                  className="pipeline-node-circle"
+                  style={{
+                    '--node-color': node.color,
+                    background: isActive || isPassed ? node.color : 'var(--bg-elevated)',
+                    boxShadow: isActive ? `0 0 24px ${node.color}50, 0 0 48px ${node.color}20` : 'none',
+                  }}
+                >
+                  <Icon name={node.icon} size={16} strokeWidth={2} style={{ color: isActive || isPassed ? '#fff' : 'var(--text-faint)' }} />
+                  {isActive && <div className="node-pulse" style={{ borderColor: node.color }} />}
+                </div>
+                <div className="pipeline-node-label" style={{ color: isActive ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                  {node.title}
+                </div>
+                <div className="pipeline-node-desc">{node.desc}</div>
+              </div>
+              {idx < PIPELINE_STEPS.length - 1 && (
+                <div className={`pipeline-connector-anim ${isPassed ? 'active' : ''}`}>
+                  <div className="connector-line" style={{ background: isPassed ? node.color : 'var(--border)' }} />
+                  {isPassed && <div className="data-particle" style={{ background: PIPELINE_STEPS[idx + 1].color }} />}
+                </div>
+              )}
+            </React.Fragment>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function Home({ onLaunchResearch, isAuthenticated }) {
+  const [hoveredAgent, setHoveredAgent] = useState(null);
+
   const scrollToArchitecture = () => {
     document.getElementById('arch-section')?.scrollIntoView({ behavior: 'smooth' });
   };
 
   return (
-    <div className="home-container">
-      {/* HERO SECTION */}
-      <section className="home-hero">
-        <div className="home-badge">
-          <span className="home-badge-dot" />
-          SYNAPSE · Autonomous AI Research System
+    <div className="landing">
+      {/* ── HERO ── */}
+      <section className="landing-hero">
+        {/* Animated background orbs */}
+        <div className="hero-orbs" aria-hidden="true">
+          <div className="orb orb-1" />
+          <div className="orb orb-2" />
+          <div className="orb orb-3" />
         </div>
 
-        <h1 className="home-title">
-          Deep Web AI Research,<br />
-          <span className="gradient-text">Engineered for Perfection.</span>
-        </h1>
-
-        <p className="home-subtitle">
-          SYNAPSE orchestrates an autonomous multi-agent pipeline that searches the live web,
-          scrapes deep webpage contents, synthesizes executive reports, and performs
-          automated quality reviews — complete with downloadable Word & PDF reports.
-        </p>
-
-        <div className="home-hero-actions">
-          <button
-            className="home-btn primary"
-            onClick={() => onLaunchResearch()}
-          >
-            🚀 {isAuthenticated ? 'Launch Research Workspace' : 'Sign In & Start Research'}
-          </button>
-
-          <button
-            className="home-btn secondary"
-            onClick={scrollToArchitecture}
-          >
-            📐 System Architecture
-          </button>
-        </div>
-
-        {/* METRICS STATS BANNER */}
-        <div className="home-stats-banner">
-          <div className="stat-box">
-            <div className="stat-val">4</div>
-            <div className="stat-label">Autonomous Agents</div>
+        <div className="hero-content">
+          <div className="hero-badge">
+            <span className="hero-badge-dot" />
+            <span>SYNAPSE</span>
+            <span className="hero-badge-sep">·</span>
+            <span>Autonomous AI Research System</span>
           </div>
-          <div className="stat-divider" />
-          <div className="stat-box">
-            <div className="stat-val">Real-Time</div>
-            <div className="stat-label">Live Web Extraction</div>
+
+          <h1 className="hero-title">
+            Deep Research Intelligence,<br />
+            <span className="gradient-text-hero">Engineered for Perfection.</span>
+          </h1>
+
+          <p className="hero-subtitle">
+            6 autonomous AI agents orchestrate a full research pipeline — decomposing queries,
+            searching the live web, extracting content, indexing evidence, synthesizing
+            citation-grounded reports, and performing automated verification.
+          </p>
+
+          <div className="hero-actions">
+            <button className="hero-primary-btn" onClick={() => onLaunchResearch()}>
+              <Icon name="bolt" size={18} strokeWidth={2.5} />
+              {isAuthenticated ? 'Launch Research Lab' : 'Start Research'}
+            </button>
+            <button className="hero-secondary-btn" onClick={scrollToArchitecture}>
+              <Icon name="play" size={16} />
+              Watch Pipeline
+            </button>
           </div>
-          <div className="stat-divider" />
-          <div className="stat-box">
-            <div className="stat-val">100%</div>
-            <div className="stat-label">Verified Citations</div>
-          </div>
-          <div className="stat-divider" />
-          <div className="stat-box">
-            <div className="stat-val">3</div>
-            <div className="stat-label">Formats (Word, PDF, MD)</div>
+
+          <div className="stats-banner">
+            {[
+              { value: '6', label: 'AI Agents' },
+              { value: 'Real-Time', label: 'SSE Streaming' },
+              { value: '100%', label: 'Citation Coverage' },
+              { value: '3', label: 'Export Formats' },
+            ].map((s) => (
+              <div className="stat-item" key={s.label}>
+                <div className="stat-value">{s.value}</div>
+                <div className="stat-label">{s.label}</div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* AGENT SQUAD SPOTLIGHT */}
-      <section className="home-section">
-        <div className="section-header-center">
-          <span className="subhead">Multi-Agent Architecture</span>
-          <h2>Autonomous AI Squad</h2>
-          <p>Four specialized AI agents operating in sequence to deliver authoritative intelligence.</p>
+      {/* ── ANIMATED PIPELINE SECTION ── */}
+      <section className="landing-section" id="arch-section">
+        <div className="landing-section-header">
+          <span className="overline">Live Pipeline Preview</span>
+          <h2>Autonomous Workflow in Motion</h2>
+          <p>Watch how SYNAPSE AI transforms a raw query into a verified executive report.</p>
+        </div>
+        <AnimatedPipeline />
+      </section>
+
+      {/* ── AGENT SHOWCASE ── */}
+      <section className="landing-section">
+        <div className="landing-section-header">
+          <span className="overline">Multi-Agent Architecture</span>
+          <h2>6 Specialized AI Agents</h2>
+          <p>Each agent operates autonomously within a coordinated intelligence pipeline.</p>
         </div>
 
-        <div className="agent-squad-grid">
+        <div className="agent-grid">
           {AGENT_SQUAD.map((agent) => (
-            <div className="squad-card" key={agent.id}>
-              <div
-                className="squad-icon"
-                style={{ background: agent.gradient }}
-              >
-                {agent.emoji}
+            <div
+              className={`agent-card ${hoveredAgent === agent.id ? 'hovered' : ''}`}
+              key={agent.id}
+              style={{ '--agent-gradient': agent.gradient, '--anim-delay': `${agent.delay * 0.1}s` }}
+              onMouseEnter={() => setHoveredAgent(agent.id)}
+              onMouseLeave={() => setHoveredAgent(null)}
+            >
+              <div className="agent-card-icon" style={{ background: agent.gradient }}>
+                <Icon name={agent.icon} size={20} strokeWidth={2} />
               </div>
-              <div className="squad-role">{agent.role}</div>
+              <div className="agent-card-role">{agent.role}</div>
               <h3>{agent.name}</h3>
               <p>{agent.description}</p>
-              <div className="squad-tools">
+              <div className="agent-tools">
                 {agent.tools.map((t) => (
-                  <span className="tool-chip" key={t}>
-                    {t}
-                  </span>
+                  <span className="chip" key={t}>{t}</span>
                 ))}
               </div>
             </div>
@@ -167,74 +219,27 @@ export default function Home({ onLaunchResearch, isAuthenticated }) {
         </div>
       </section>
 
-      {/* SYSTEM ARCHITECTURE FLOW */}
-      <section className="home-section" id="arch-section">
-        <div className="section-header-center">
-          <span className="subhead">Pipeline Blueprint</span>
-          <h2>Autonomous Workflow Sequence</h2>
-          <p>Transforming raw intent into publication-grade research in seconds.</p>
-        </div>
-
-        <div className="arch-flow">
-          <div className="arch-step">
-            <div className="arch-node">1</div>
-            <h4>Research Topic Input</h4>
-            <p>Formulates user intent & scope</p>
-          </div>
-          <div className="arch-arrow">➔</div>
-
-          <div className="arch-step">
-            <div className="arch-node purp">2</div>
-            <h4>Search Agent</h4>
-            <p>Extracts queries & scans live web results</p>
-          </div>
-          <div className="arch-arrow">➔</div>
-
-          <div className="arch-step">
-            <div className="arch-node cyan">3</div>
-            <h4>Reader Agent</h4>
-            <p>Scrapes DOM & extracts clean page payload</p>
-          </div>
-          <div className="arch-arrow">➔</div>
-
-          <div className="arch-step">
-            <div className="arch-node yellow">4</div>
-            <h4>Writer Agent</h4>
-            <p>Drafts executive report with findings</p>
-          </div>
-          <div className="arch-arrow">➔</div>
-
-          <div className="arch-step">
-            <div className="arch-node pink">5</div>
-            <h4>Critic Audit & Export</h4>
-            <p>Evaluates quality score & outputs Word/PDF</p>
-          </div>
-        </div>
-      </section>
-
-      {/* QUICK LAUNCH TOPICS */}
-      <section className="home-section">
-        <div className="section-header-center">
-          <span className="subhead">Instant Research</span>
-          <h2>Explore Featured Intelligence Topics</h2>
-          <p>Select any deep topic to launch a live autonomous research pipeline.</p>
+      {/* ── FEATURED TOPICS ── */}
+      <section className="landing-section">
+        <div className="landing-section-header">
+          <span className="overline">Instant Research</span>
+          <h2>Explore Intelligence Topics</h2>
+          <p>Select any topic to launch a live autonomous research pipeline.</p>
         </div>
 
         <div className="topic-grid">
           {FEATURED_TOPICS.map((topic) => (
-            <div
-              className="topic-card"
-              key={topic.title}
-              onClick={() => onLaunchResearch(topic.title)}
-            >
-              <div className="topic-header">
-                <span className="topic-icon">{topic.icon}</span>
+            <div className="topic-card" key={topic.title} onClick={() => onLaunchResearch(topic.title)}>
+              <div className="topic-card-header">
+                <div className="topic-icon">
+                  <Icon name={topic.icon} size={18} />
+                </div>
                 <span className="topic-badge">{topic.category}</span>
               </div>
               <h4>{topic.title}</h4>
               <p>{topic.desc}</p>
               <div className="topic-cta">
-                Launch Pipeline <span>→</span>
+                Launch Pipeline <Icon name="arrowRight" size={14} />
               </div>
             </div>
           ))}

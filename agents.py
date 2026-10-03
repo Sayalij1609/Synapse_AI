@@ -28,11 +28,11 @@ logger = logging.getLogger("synapse.agents")
 load_dotenv()
 
 GROQ_MODEL = os.getenv("GROQ_MODEL", "qwen/qwen3.8-27b")
-GROQ_FALLBACK_MODEL = os.getenv("GROQ_FALLBACK_MODEL", "llama-3.1-8b-instant")
+GROQ_FALLBACK_MODEL = os.getenv("GROQ_FALLBACK_MODEL", "openai/gpt-oss-120b")
 GROQ_MAX_TOKENS = int(os.getenv("GROQ_MAX_TOKENS", "750"))
-GROQ_WRITER_MAX_TOKENS = int(os.getenv("GROQ_WRITER_MAX_TOKENS", "4096"))
+GROQ_WRITER_MAX_TOKENS = int(os.getenv("GROQ_WRITER_MAX_TOKENS", "2800"))
 GROQ_CRITIC_MAX_TOKENS = int(os.getenv("GROQ_CRITIC_MAX_TOKENS", "1024"))
-LLM_TIMEOUT_SECONDS = float(os.getenv("LLM_TIMEOUT_SECONDS", "30.0"))
+LLM_TIMEOUT_SECONDS = float(os.getenv("LLM_TIMEOUT_SECONDS", "90.0"))
 
 # Primary dedicated LLM instances
 query_llm = ChatGroq(model=GROQ_MODEL, temperature=0, max_tokens=100, max_retries=2)
@@ -223,83 +223,38 @@ def build_reader_agent():
 writer_prompt = ChatPromptTemplate.from_messages([
     (
         "system",
-        """You are an elite research director and intelligence analyst producing publication-grade research documents.
+        """You are an elite research analyst. Synthesize evidence into a grounded research report as JSON.
 
-OBJECTIVE: Synthesize the provided research evidence into a comprehensive, highly detailed, deeply analytical, and professionally formatted research document.
+RULES:
+- NEVER copy raw/scraped text verbatim. ALWAYS synthesize into polished analytical prose.
+- NEVER include website boilerplate (Wikipedia headers, copyright, cookie text, navigation).
+- SKIP truncated fragments starting with lowercase word parts (e.g., "bility of", "tered the").
+- Cite sources as [Source N]. Include concrete metrics, dates, and percentages.
+- Write in professional third-person analytical tone.
 
-REQUIRED REPORT SECTIONS (Strict JSON Output):
-1. "summary": A rich, substantive 4-6 sentence executive summary establishing context, triggering mechanisms, magnitude (casualties, damages, financial or technical metrics), and strategic core takeaways.
-2. "research_objectives": Array of 3-5 distinct research questions or investigative objectives addressed in this study.
-3. "key_findings": Array of 5-8 high-impact empirical takeaways. Each item MUST have:
-   - "headline": Short, punchy bold title (4-8 words, e.g. "Catastrophic Glacier Collapse Triggered Flash Floods")
-   - "takeaway": 2-3 sentence analytical summary with concrete numbers, dates, locations, and source citations like [Source 1].
-4. "thematic_analysis": Array of 3-5 comprehensive analytical sections exploring distinct dimensions of the topic (e.g. for disasters: "Chronology & Physical Mechanics", "Casualty Breakdown & Humanitarian Crisis", "Infrastructure Destruction & Economic Repercussions", "Environmental Determinants & Climate Drivers", "Emergency Response & Regional Governance"; or tailored appropriately for tech, science, finance, or policy topics).
-   Each thematic section MUST have:
-   - "heading": Descriptive analytical heading (e.g. "1. Chronology and Physical Mechanics of the Event")
-   - "content": 2-4 comprehensive, deeply analytical paragraphs containing granular evidence, quantitative indicators, cross-source comparisons, and inline citations [Source N].
-5. "claims": Array of 6-10 factual statements audited against the evidence:
-   - "claim_id": "claim_1", "claim_2", etc.
-   - "headline": Short title for the claim
-   - "text": Full analytical statement (3-5 sentences) with specific facts, metrics, and citations
-   - "supporting_source_ids": ["1", "2"] (matching Source N numbers)
-   - "evidence_chunk_ids": ["chunk_id" or "sess_..."]
-   - "confidence": float between 0.85 and 1.0
-6. "conclusion": Substantive 4-6 sentence strategic outlook detailing near-term operational risks, systemic implications, and actionable recommendations.
-7. "limitations": Array of 2-4 realistic methodological limitations, data gaps, or real-time indexation caveats.
-
-CRITICAL CITATION & QUALITY RULES:
-- Never copy raw or unreadable text verbatim; synthesize into polished, articulate analytical prose.
-- If evidence contains corrupted, unreadable, or binary characters, SKIP it completely.
-- Use [Source N] notation matching the Evidence Catalog source numbers for every factual claim.
-- Provide concrete metrics, quantities, percentages, and dates wherever present in the evidence.
-
-OUTPUT FORMAT — Pure JSON only:
+OUTPUT FORMAT — Pure JSON with these keys:
 {{
-  "summary": "Substantive executive summary (4-6 sentences)...",
-  "research_objectives": [
-    "Core objective or sub-question 1",
-    "Core objective or sub-question 2"
-  ],
-  "key_findings": [
-    {{
-      "headline": "Short Bold Headline (4-8 words)",
-      "takeaway": "Concise high-impact takeaway statement with specific data and [Source N] citation..."
-    }}
-  ],
-  "thematic_analysis": [
-    {{
-      "heading": "Analytical Section Heading",
-      "content": "Comprehensive multi-paragraph analytical narrative citing [Source 1]..."
-    }}
-  ],
-  "claims": [
-    {{
-      "claim_id": "claim_1",
-      "headline": "Core factual finding headline",
-      "text": "Detailed analytical statement with data points and specifics...",
-      "supporting_source_ids": ["1"],
-      "evidence_chunk_ids": ["chunk_1"],
-      "confidence": 0.95
-    }}
-  ],
-  "conclusion": "Strategic synthesis with actionable recommendations and forward-looking outlook (4-6 sentences)...",
-  "limitations": [
-    "Methodological limitation or data gap note 1",
-    "Methodological limitation or data gap note 2"
-  ]
+  "summary": "Executive summary (3-5 sentences with key findings and data)",
+  "research_objectives": ["4-6 specific research questions investigated"],
+  "background_context": "2-3 paragraphs: historical context, current state, significance. Cite [Source N].",
+  "key_findings": [{{"headline": "Short Title (4-8 words)", "takeaway": "2-3 sentence finding with data and [Source N]"}}],
+  "claims": [{{"claim_id": "claim_1", "headline": "Claim title", "text": "Factual statement with data", "supporting_source_ids": ["1"], "evidence_chunk_ids": ["chunk_1"], "confidence": 0.95}}],
+  "thematic_analysis": [{{"heading": "Section Title", "content": "2-3 analytical paragraphs with [Source N] citations"}}],
+  "comparative_data": [{{"category": "Comparison", "entries": [{{"name": "A", "metric": "value"}}]}}],
+  "challenges": "1-2 paragraphs on challenges, bottlenecks, open questions with [Source N]",
+  "conclusion": "Strategic outlook (3-5 sentences): synthesis, implications, recommendations",
+  "limitations": ["2-3 methodology notes"]
 }}
 
-Output ONLY the JSON block. No commentary outside the JSON.
-"""
+Output ONLY valid JSON. No text outside the JSON block."""
     ),
     (
         "human",
-        """Research Topic:
-{topic}
+        """Topic: {topic}
 
 {research}
 
-Generate the comprehensive grounded research document JSON:"""
+Generate the research report JSON:"""
     )
 ])
 

@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import Icon from './shared/Icon';
 
 export default function Topbar({
   currentView,
@@ -8,17 +9,28 @@ export default function Topbar({
   onOpenAuth,
   onLogout,
 }) {
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('syn-theme') || 'dark';
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('syn-theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  };
+
   return (
     <header className="topbar">
       <div className="topbar-left">
-        <div
-          className="topbar-brand-title"
-          onClick={() => onSwitchView('home')}
-          title="Return to Home Overview"
-        >
-          <div className="brand-logo-badge">⚡</div>
-          <span className="brand-name-text">
-            SYNAPSE <span className="brand-accent-tag">AI</span>
+        <div className="topbar-brand" onClick={() => onSwitchView('home')} title="Return to Home">
+          <div className="brand-logo">
+            <Icon name="bolt" size={16} strokeWidth={2.5} />
+          </div>
+          <span className="brand-wordmark">
+            SYNAPSE<span className="brand-ai">AI</span>
           </span>
         </div>
 
@@ -26,78 +38,74 @@ export default function Topbar({
 
         <nav className="topbar-nav">
           <button
-            className={`topbar-nav-tab${currentView === 'home' ? ' active' : ''}`}
+            className={`nav-tab${currentView === 'home' ? ' active' : ''}`}
             onClick={() => onSwitchView('home')}
           >
-            <span className="nav-tab-icon">🏠</span> Overview
+            <Icon name="home" size={16} /> Overview
           </button>
 
           <button
-            className={`topbar-nav-tab${currentView === 'dashboard' ? ' active' : ''}`}
+            className={`nav-tab${currentView === 'dashboard' ? ' active' : ''}`}
             onClick={() => onSwitchView('dashboard')}
           >
-            <span className="nav-tab-icon">🔬</span> Research Lab
+            <Icon name="beaker" size={16} /> Research Lab
           </button>
 
           <button
-            className={`topbar-nav-tab${currentView === 'workspace' ? ' active' : ''}`}
+            className={`nav-tab${currentView === 'workspace' ? ' active' : ''}`}
             onClick={() => onSwitchView('workspace')}
           >
-            <span className="nav-tab-icon">📁</span> Workspace
-            {currentUser && <span className="nav-user-indicator">●</span>}
+            <Icon name="folder" size={16} /> Workspace
+            {currentUser && <span className="nav-user-dot" />}
           </button>
 
-          <button
-            className="topbar-nav-tab"
-            onClick={onOpenHistory}
-          >
-            <span className="nav-tab-icon">📜</span> History
+          <button className="nav-tab" onClick={onOpenHistory}>
+            <Icon name="clock" size={16} /> History
           </button>
         </nav>
       </div>
 
       <div className="topbar-right">
-        <div className="status-pill">
-          <span className="status-dot" />
-          Autonomous Engine · Active
+        <div className="engine-status">
+          <span className="engine-dot" />
+          Engine Active
         </div>
+
+        {/* Theme Toggle */}
+        <button
+          className="theme-toggle"
+          onClick={toggleTheme}
+          title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+        >
+          <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={16} />
+        </button>
 
         {currentUser ? (
           <div className="topbar-auth-group">
             <button
-              className="topbar-user-pill"
+              className="user-pill"
               onClick={() => onSwitchView('workspace')}
               title={`Logged in as ${currentUser.email}`}
             >
-              <span className="user-pill-avatar">
+              <span className="user-avatar">
                 {(currentUser.full_name || currentUser.username || currentUser.email || 'U')[0].toUpperCase()}
               </span>
-              <span className="user-pill-name">
+              <span className="user-name">
                 {currentUser.full_name || currentUser.username || currentUser.email.split('@')[0]}
               </span>
             </button>
-            <button
-              className="topbar-auth-btn signout-btn"
-              onClick={onLogout}
-              title="Sign Out"
-            >
+            <button className="signout-btn" onClick={onLogout} title="Sign Out">
               Sign Out
             </button>
           </div>
         ) : (
           <div className="topbar-auth-group">
-            <button
-              className="topbar-auth-btn signin-btn"
-              onClick={onOpenAuth}
-            >
-              Sign In 🔐
+            <button className="signin-btn" onClick={onOpenAuth}>
+              <Icon name="lock" size={14} /> Sign In
             </button>
             {currentView === 'home' && (
-              <button
-                className="topbar-action-btn"
-                onClick={() => onSwitchView('dashboard')}
-              >
-                Launch Lab 🚀
+              <button className="launch-btn" onClick={() => onSwitchView('dashboard')}>
+                <Icon name="bolt" size={14} /> Launch Lab
               </button>
             )}
           </div>
