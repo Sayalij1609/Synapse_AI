@@ -1178,7 +1178,7 @@ body {
 
 .kpi-num.color-emerald { color: #10b981; }
 .kpi-num.color-cyan { color: #06b6d4; }
-.kpi-num.color-amber { color: #f59e0b; }
+.kpi-num.color-amber, .kpi-num.color-teal { color: #14b8a6; }
 
 .kpi-name {
   font-size: 0.72rem;
@@ -1499,7 +1499,7 @@ body {
 
 .fresh-current { background: rgba(16, 185, 129, 0.12); color: #10b981; }
 .fresh-recent { background: rgba(16, 185, 129, 0.1); color: #34d399; }
-.fresh-aging { background: rgba(245, 158, 11, 0.12); color: #f59e0b; }
+.fresh-aging { background: rgba(20, 184, 166, 0.12); color: #14b8a6; }
 .fresh-stale { background: rgba(239, 68, 68, 0.12); color: #ef4444; }
 .fresh-undated { background: rgba(148, 163, 184, 0.12); color: #94a3b8; }
 
@@ -2993,8 +2993,8 @@ body {
 }
 
 .status-badge-pill.running {
-  background: rgba(245, 158, 11, 0.12);
-  color: #f59e0b;
+  background: rgba(37, 99, 235, 0.14);
+  color: #3b82f6;
 }
 
 .status-badge-pill.failed {
@@ -3017,9 +3017,9 @@ body {
 }
 
 .verification-badge-pill.fail {
-  background: rgba(245, 158, 11, 0.15);
-  color: #d97706;
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  background: rgba(244, 63, 94, 0.15);
+  color: #f43f5e;
+  border: 1px solid rgba(244, 63, 94, 0.3);
 }
 
 .verification-badge-pill.unknown {
@@ -3437,9 +3437,9 @@ body {
 }
 
 .status-pill.badge-degraded {
-  background: rgba(245, 158, 11, 0.15);
-  color: #f59e0b;
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  background: rgba(244, 63, 94, 0.15);
+  color: #f43f5e;
+  border: 1px solid rgba(244, 63, 94, 0.3);
 }
 
 .status-pill.badge-failed {

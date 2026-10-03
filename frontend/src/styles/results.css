@@ -76,10 +76,21 @@
    ══════════════════════════════════════ */
 
 .report-card {
-  background: var(--bg-primary);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   overflow: hidden;
+  box-shadow: var(--shadow-md);
+  position: relative;
+}
+
+.report-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, #6366F1, #8B5CF6, #38BDF8);
 }
 
 .report-card-header {
@@ -97,6 +108,10 @@
   gap: var(--space-2);
   font-size: var(--text-sm);
   font-weight: 700;
+  color: #C7D2FE;
+}
+
+.report-card-label .icon {
   color: var(--accent);
 }
 
@@ -115,7 +130,7 @@
 }
 
 .copy-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
-.copy-btn.copied { color: var(--success); border-color: rgba(16, 185, 129, 0.3); }
+.copy-btn.copied { color: #6EE7B7; border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.1); }
 
 .report-body {
   padding: var(--space-6) var(--space-8);
@@ -216,7 +231,7 @@
   gap: var(--space-2);
   font-size: var(--text-sm);
   font-weight: 700;
-  color: var(--amber);
+  color: var(--teal);
 }
 
 .review-body {
@@ -304,12 +319,12 @@
 .md ul, .md ol { padding-left: var(--space-6); margin-bottom: var(--space-3); }
 .md li { margin-bottom: var(--space-1); }
 .md strong { color: var(--text-primary); font-weight: 700; }
-.md a { color: var(--accent); border-bottom: 1px solid var(--accent-muted); transition: all 0.15s ease; }
-.md a:hover { border-color: var(--accent); }
-.md blockquote { border-left: 3px solid var(--accent); padding: var(--space-3) var(--space-4); background: var(--bg-surface); border-radius: 0 var(--radius-md) var(--radius-md) 0; margin: var(--space-3) 0; font-style: italic; color: var(--text-muted); }
-.md code { font-family: var(--font-mono); background: var(--bg-elevated); padding: 2px 6px; border-radius: var(--radius-sm); font-size: 0.88em; color: var(--accent); }
-.md pre { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-4); overflow-x: auto; margin: var(--space-3) 0; }
-.md pre code { background: none; padding: 0; color: var(--text-secondary); }
+.md a { color: #38BDF8; border-bottom: 1px solid rgba(56, 189, 248, 0.3); transition: all 0.15s ease; }
+.md a:hover { color: #7DD3FC; border-color: #38BDF8; }
+.md blockquote { border-left: 3px solid #6366F1; padding: var(--space-3) var(--space-4); background: rgba(99, 102, 241, 0.08); border-radius: 0 var(--radius-md) var(--radius-md) 0; margin: var(--space-3) 0; font-style: italic; color: var(--text-secondary); }
+.md code { font-family: var(--font-mono); background: rgba(56, 189, 248, 0.1); padding: 2px 7px; border-radius: var(--radius-sm); font-size: 0.88em; color: #38BDF8; border: 1px solid rgba(56, 189, 248, 0.2); }
+.md pre { background: var(--bg-surface-2); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-4); overflow-x: auto; margin: var(--space-3) 0; }
+.md pre code { background: none; padding: 0; color: var(--text-secondary); border: none; }
 
 /* ── Tables in rendered markdown ── */
 .md table {

@@ -47,7 +47,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.25);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
 }
 
 .brand-logo .icon {
@@ -242,12 +242,12 @@
   color: #fff;
   background: var(--gradient-primary);
   border-radius: var(--radius-md);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.35);
   transition: all var(--duration-fast) ease;
 }
 
 .launch-btn:hover {
-  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+  box-shadow: 0 6px 24px rgba(99, 102, 241, 0.55);
   transform: translateY(-1px);
 }
 
@@ -267,10 +267,16 @@
 }
 
 .theme-toggle:hover {
-  color: var(--amber);
-  background: var(--amber-muted);
-  border-color: rgba(245, 158, 11, 0.3);
+  color: var(--ice);
+  background: var(--ice-muted);
+  border-color: rgba(0, 210, 255, 0.4);
   transform: rotate(15deg);
+}
+
+.theme-toggle.theme-night {
+  color: #38BDF8;
+  border-color: rgba(56, 189, 248, 0.3);
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.15);
 }
 
 /* Mobile */

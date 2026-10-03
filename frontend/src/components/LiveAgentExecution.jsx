@@ -76,12 +76,12 @@ export default function LiveAgentExecution({ liveAgents, agentStatuses, verifica
           return (
             <React.Fragment key={agent.key}>
               {idx > 0 && (
-                <div className={`flow-connector ${connectorClass}`}>
+                <div className={`flow-connector ${connectorClass} connector-step-${idx}`}>
                   <div className="flow-line" />
                   <span className="flow-arrow">→</span>
                 </div>
               )}
-              <div className={`agent-node ${status}`}>
+              <div className={`agent-node ${status} agent-node-${agent.key.toLowerCase()}`} data-agent={agent.key.toLowerCase()}>
                 <div className="agent-node-icon">
                   {status === 'completed' ? (
                     <Icon name="check" size={20} strokeWidth={2.5} />

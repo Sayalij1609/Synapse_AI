@@ -1,14 +1,29 @@
 /* ═══════════════════════════════════════════════════════════════
    SYNAPSE AI — AGENT PIPELINE VISUALIZATION STYLES
-   Animated flow of 6 agents with connecting gradient lines
+   Distinct multi-color signature identity for all 6 agents
    ═══════════════════════════════════════════════════════════════ */
 
 .pipeline-container {
-  background: var(--bg-surface);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   padding: var(--space-6);
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
   animation: fadeUp 500ms var(--ease-smooth) 100ms both;
+}
+
+.pipeline-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.4), rgba(56, 189, 248, 0.4), transparent);
 }
 
 .pipeline-header {
@@ -27,6 +42,7 @@
 .pipeline-title {
   font-size: var(--text-base);
   font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 .pipeline-subtitle {
@@ -34,13 +50,16 @@
   color: var(--text-muted);
 }
 
-/* Agent Track (horizontal flow) */
+/* ══════════════════════════════════════
+   AGENT TRACK (Horizontal Flow)
+   ══════════════════════════════════════ */
 .agent-track {
   display: flex;
   align-items: flex-start;
+  justify-content: space-between;
   gap: 0;
   overflow-x: auto;
-  padding: var(--space-2) 0;
+  padding: var(--space-3) 0 var(--space-2);
 }
 
 .agent-node {
@@ -50,19 +69,20 @@
   gap: var(--space-2);
   min-width: 110px;
   flex-shrink: 0;
-  padding: var(--space-3);
-  border-radius: var(--radius-md);
-  transition: background 0.2s ease;
+  padding: var(--space-3) var(--space-2);
+  border-radius: var(--radius-lg);
+  transition: all 0.3s var(--ease-smooth);
 }
 
 .agent-node:hover {
   background: var(--bg-hover);
+  transform: translateY(-2px);
 }
 
 /* Icon container */
 .agent-node-icon {
-  width: 48px;
-  height: 48px;
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -71,49 +91,178 @@
   color: var(--text-faint);
   background: var(--bg-elevated);
   border: 2px solid var(--border);
-  transition: all 0.3s ease;
+  transition: all 0.35s var(--ease-smooth);
 }
 
-/* Status-dependent icon styles */
 .agent-node.idle .agent-node-icon {
-  opacity: 0.5;
+  opacity: 0.55;
 }
 
+/* ── 1. PLANNER AGENT (Royal Violet #8B5CF6) ── */
+.agent-node-planner.running .agent-node-icon {
+  border-color: #8B5CF6;
+  color: #8B5CF6;
+  background: rgba(139, 92, 246, 0.16);
+  box-shadow: 0 0 25px rgba(139, 92, 246, 0.4);
+}
+.agent-node-planner.running .agent-pulse-ring {
+  border-color: #8B5CF6;
+}
+.agent-node-planner.completed .agent-node-icon {
+  border-color: rgba(139, 92, 246, 0.7);
+  color: #C4B5FD;
+  background: rgba(139, 92, 246, 0.15);
+  box-shadow: 0 0 16px rgba(139, 92, 246, 0.2);
+}
+.agent-node-planner.completed .status-badge {
+  color: #A78BFA;
+  background: rgba(139, 92, 246, 0.12);
+  border-color: rgba(139, 92, 246, 0.3);
+}
+
+/* ── 2. SEARCH AGENT (Electric Sky Blue #38BDF8) ── */
+.agent-node-search.running .agent-node-icon {
+  border-color: #38BDF8;
+  color: #38BDF8;
+  background: rgba(56, 189, 248, 0.16);
+  box-shadow: 0 0 25px rgba(56, 189, 248, 0.4);
+}
+.agent-node-search.running .agent-pulse-ring {
+  border-color: #38BDF8;
+}
+.agent-node-search.completed .agent-node-icon {
+  border-color: rgba(56, 189, 248, 0.7);
+  color: #BAE6FD;
+  background: rgba(56, 189, 248, 0.15);
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.2);
+}
+.agent-node-search.completed .status-badge {
+  color: #38BDF8;
+  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.3);
+}
+
+/* ── 3. READER AGENT (Vibrant Cyan #06B6D4) ── */
+.agent-node-reader.running .agent-node-icon {
+  border-color: #06B6D4;
+  color: #06B6D4;
+  background: rgba(6, 182, 212, 0.16);
+  box-shadow: 0 0 25px rgba(6, 182, 212, 0.4);
+}
+.agent-node-reader.running .agent-pulse-ring {
+  border-color: #06B6D4;
+}
+.agent-node-reader.completed .agent-node-icon {
+  border-color: rgba(6, 182, 212, 0.7);
+  color: #A5F3FC;
+  background: rgba(6, 182, 212, 0.15);
+  box-shadow: 0 0 16px rgba(6, 182, 212, 0.2);
+}
+.agent-node-reader.completed .status-badge {
+  color: #06B6D4;
+  background: rgba(6, 182, 212, 0.12);
+  border-color: rgba(6, 182, 212, 0.3);
+}
+
+/* ── 4. RETRIEVAL AGENT (Polar Seafoam #14B8A6 — NO GOLD) ── */
+.agent-node-retrieval.running .agent-node-icon {
+  border-color: #14B8A6;
+  color: #14B8A6;
+  background: rgba(20, 184, 166, 0.16);
+  box-shadow: 0 0 25px rgba(20, 184, 166, 0.4);
+}
+.agent-node-retrieval.running .agent-pulse-ring {
+  border-color: #14B8A6;
+}
+.agent-node-retrieval.completed .agent-node-icon {
+  border-color: rgba(20, 184, 166, 0.7);
+  color: #5EEAD4;
+  background: rgba(20, 184, 166, 0.15);
+  box-shadow: 0 0 16px rgba(20, 184, 166, 0.2);
+}
+.agent-node-retrieval.completed .status-badge {
+  color: #14B8A6;
+  background: rgba(20, 184, 166, 0.12);
+  border-color: rgba(20, 184, 166, 0.3);
+}
+
+/* ── 5. WRITER AGENT (Mint Emerald #10B981) ── */
+.agent-node-writer.running .agent-node-icon {
+  border-color: #10B981;
+  color: #10B981;
+  background: rgba(16, 185, 129, 0.16);
+  box-shadow: 0 0 25px rgba(16, 185, 129, 0.4);
+}
+.agent-node-writer.running .agent-pulse-ring {
+  border-color: #10B981;
+}
+.agent-node-writer.completed .agent-node-icon {
+  border-color: rgba(16, 185, 129, 0.7);
+  color: #A7F3D0;
+  background: rgba(16, 185, 129, 0.15);
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.2);
+}
+.agent-node-writer.completed .status-badge {
+  color: #10B981;
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+/* ── 6. VERIFIER AGENT (Coral Rose #F43F5E) ── */
+.agent-node-verification.running .agent-node-icon {
+  border-color: #F43F5E;
+  color: #F43F5E;
+  background: rgba(244, 63, 94, 0.16);
+  box-shadow: 0 0 25px rgba(244, 63, 94, 0.4);
+}
+.agent-node-verification.running .agent-pulse-ring {
+  border-color: #F43F5E;
+}
+.agent-node-verification.completed .agent-node-icon {
+  border-color: rgba(244, 63, 94, 0.7);
+  color: #FECDD3;
+  background: rgba(244, 63, 94, 0.15);
+  box-shadow: 0 0 16px rgba(244, 63, 94, 0.2);
+}
+.agent-node-verification.completed .status-badge {
+  color: #F43F5E;
+  background: rgba(244, 63, 94, 0.12);
+  border-color: rgba(244, 63, 94, 0.3);
+}
+
+/* Generic Fallback */
 .agent-node.running .agent-node-icon {
   border-color: var(--accent);
   color: var(--accent);
   background: var(--accent-muted);
-  box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+  box-shadow: 0 0 20px rgba(37, 99, 235, 0.3);
 }
-
 .agent-node.completed .agent-node-icon {
   border-color: var(--success);
   color: var(--success);
   background: var(--success-muted);
 }
-
 .agent-node.degraded .agent-node-icon {
   border-color: var(--warning);
   color: var(--warning);
   background: var(--warning-muted);
 }
-
 .agent-node.failed .agent-node-icon {
   border-color: var(--danger);
   color: var(--danger);
   background: var(--danger-muted);
 }
 
-/* Pulse ring for running state */
+/* Pulse ring */
 .agent-pulse-ring {
   position: absolute;
-  inset: -4px;
+  inset: -5px;
   border-radius: 50%;
   border: 2px solid var(--accent);
   animation: pulseRing 1.5s ease-out infinite;
 }
 
-/* Agent name & description */
+/* Agent labels */
 .agent-node-name {
   font-size: var(--text-xs);
   font-weight: 700;
@@ -130,26 +279,29 @@
   color: var(--text-faint);
   text-align: center;
   max-width: 100px;
+  line-height: 1.3;
 }
 
-/* Elapsed time */
 .agent-elapsed {
   font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 600;
   color: var(--text-muted);
-  padding: 1px 6px;
+  padding: 1px 7px;
   border-radius: var(--radius-full);
   background: var(--bg-elevated);
+  border: 1px solid var(--border);
   animation: fadeUp 300ms var(--ease-smooth) both;
 }
 
-/* Flow connector between agents */
+/* ══════════════════════════════════════
+   FLOW CONNECTORS WITH MULTI-STOP GRADIENTS (NO GOLD)
+   ══════════════════════════════════════ */
 .flow-connector {
   display: flex;
   align-items: center;
   align-self: center;
-  margin-top: -20px;
+  margin-top: -22px;
   padding: 0 2px;
   flex-shrink: 0;
 }
@@ -159,28 +311,77 @@
   height: 2px;
   background: var(--border);
   position: relative;
-  transition: background 0.3s ease;
-}
-
-.flow-connector.complete .flow-line {
-  background: linear-gradient(90deg, var(--success), var(--teal));
-}
-
-.flow-connector.active .flow-line {
-  background: var(--accent);
-  animation: borderGlow 1.5s ease-in-out infinite;
+  transition: all 0.4s ease;
+  border-radius: 2px;
 }
 
 .flow-arrow {
   font-size: 12px;
   color: var(--text-faint);
-  transition: color 0.3s ease;
+  transition: all 0.4s ease;
+  margin-left: 2px;
 }
 
-.flow-connector.complete .flow-arrow {
-  color: var(--success);
+/* Connector Step Specific Gradients (NO GOLD) */
+.flow-connector.connector-step-1.complete .flow-line,
+.flow-connector.connector-step-1.active .flow-line {
+  background: linear-gradient(90deg, #6366F1, #00D2FF);
+  box-shadow: 0 0 8px rgba(0, 210, 255, 0.4);
+}
+.flow-connector.connector-step-1.complete .flow-arrow,
+.flow-connector.connector-step-1.active .flow-arrow {
+  color: #00D2FF;
 }
 
+.flow-connector.connector-step-2.complete .flow-line,
+.flow-connector.connector-step-2.active .flow-line {
+  background: linear-gradient(90deg, #00D2FF, #0284C7);
+  box-shadow: 0 0 8px rgba(2, 132, 199, 0.4);
+}
+.flow-connector.connector-step-2.complete .flow-arrow,
+.flow-connector.connector-step-2.active .flow-arrow {
+  color: #0284C7;
+}
+
+.flow-connector.connector-step-3.complete .flow-line,
+.flow-connector.connector-step-3.active .flow-line {
+  background: linear-gradient(90deg, #0284C7, #14B8A6);
+  box-shadow: 0 0 8px rgba(20, 184, 166, 0.4);
+}
+.flow-connector.connector-step-3.complete .flow-arrow,
+.flow-connector.connector-step-3.active .flow-arrow {
+  color: #14B8A6;
+}
+
+.flow-connector.connector-step-4.complete .flow-line,
+.flow-connector.connector-step-4.active .flow-line {
+  background: linear-gradient(90deg, #14B8A6, #10B981);
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+}
+.flow-connector.connector-step-4.complete .flow-arrow,
+.flow-connector.connector-step-4.active .flow-arrow {
+  color: #10B981;
+}
+
+.flow-connector.connector-step-5.complete .flow-line,
+.flow-connector.connector-step-5.active .flow-line {
+  background: linear-gradient(90deg, #10B981, #F43F5E);
+  box-shadow: 0 0 8px rgba(244, 63, 94, 0.4);
+}
+.flow-connector.connector-step-5.complete .flow-arrow,
+.flow-connector.connector-step-5.active .flow-arrow {
+  color: #F43F5E;
+}
+
+/* Fallback connector */
+.flow-connector.complete .flow-line {
+  background: var(--gradient-brand);
+}
+.flow-connector.active .flow-line {
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+.flow-connector.complete .flow-arrow,
 .flow-connector.active .flow-arrow {
   color: var(--accent);
 }
@@ -188,7 +389,7 @@
 /* Progress bar */
 .pipeline-progress {
   margin-top: var(--space-4);
-  height: 3px;
+  height: 4px;
   background: var(--bg-elevated);
   border-radius: var(--radius-full);
   overflow: hidden;
@@ -196,8 +397,9 @@
 
 .pipeline-progress-bar {
   height: 100%;
-  background: var(--gradient-primary);
+  background: var(--gradient-pipeline);
   border-radius: var(--radius-full);
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
   transition: width 0.5s var(--ease-smooth);
 }
 
@@ -207,12 +409,13 @@
   align-items: center;
   gap: var(--space-2);
   font-size: var(--text-xs);
-  font-weight: 600;
-  padding: var(--space-1) var(--space-3);
+  font-weight: 700;
+  padding: 4px 12px;
   border-radius: var(--radius-full);
-  background: var(--accent-muted);
-  color: var(--accent);
-  border: 1px solid rgba(16, 185, 129, 0.2);
+  background: rgba(99, 102, 241, 0.14);
+  color: #818CF8;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  box-shadow: 0 0 15px rgba(99, 102, 241, 0.15);
 }
 
 /* Responsive */
@@ -230,8 +433,8 @@
   }
 
   .agent-node-icon {
-    width: 40px;
-    height: 40px;
+    width: 42px;
+    height: 42px;
   }
 
   .agent-node-name,
@@ -241,7 +444,7 @@
 
   .flow-connector {
     margin-top: 0;
-    margin-left: 19px;
+    margin-left: 20px;
     padding: var(--space-1) 0;
   }
 

@@ -18,8 +18,13 @@ export default function Topbar({
     localStorage.setItem('syn-theme', theme);
   }, [theme]);
 
+  const THEMES = ['dark', 'night', 'light'];
+
   const toggleTheme = () => {
-    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+    setTheme(prev => {
+      const nextIdx = (THEMES.indexOf(prev) + 1) % THEMES.length;
+      return THEMES[nextIdx >= 0 ? nextIdx : 0];
+    });
   };
 
   return (
@@ -71,13 +76,20 @@ export default function Topbar({
           Engine Active
         </div>
 
-        {/* Theme Toggle */}
+        {/* Theme Toggle: Cycles Dark -> Night -> Light */}
         <button
-          className="theme-toggle"
+          className={`theme-toggle theme-${theme}`}
           onClick={toggleTheme}
-          title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+          title={
+            theme === 'dark'
+              ? 'Current: Cosmic Dark — Click for Midnight OLED (Night)'
+              : theme === 'night'
+              ? 'Current: Midnight OLED (Night) — Click for Executive Light'
+              : 'Current: Executive Light — Click for Cosmic Dark'
+          }
+          aria-label="Toggle display theme"
         >
-          <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={16} />
+          <Icon name={theme === 'dark' ? 'moon' : theme === 'night' ? 'sparkles' : 'sun'} size={16} />
         </button>
 
         {currentUser ? (

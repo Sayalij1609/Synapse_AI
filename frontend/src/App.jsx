@@ -8,6 +8,7 @@ import Footer from './components/Footer';
 import HistoryModal from './components/HistoryModal';
 import AuthModal from './components/AuthModal';
 import UserWorkspace from './components/UserWorkspace';
+import AmbientBackground from './components/AmbientBackground';
 
 import useResearch from './hooks/useResearch';
 import { fetchHistoryEntry, fetchCurrentUser, logout as apiLogout } from './api';
@@ -253,6 +254,7 @@ export default function App() {
       />
 
       <div className="app-shell">
+        <AmbientBackground />
         <Topbar
           currentView={currentView}
           onSwitchView={handleSwitchView}

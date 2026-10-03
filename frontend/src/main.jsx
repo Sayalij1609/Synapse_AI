@@ -12,6 +12,8 @@ import './styles/dashboard-panel.css'
 import './styles/agents.css'
 import './styles/results.css'
 import './styles/modals.css'
+import './styles/ambient.css'
+import './styles/footer.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
