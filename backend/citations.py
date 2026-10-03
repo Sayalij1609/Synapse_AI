@@ -926,10 +926,10 @@ def assemble_grounded_report(
             report_sections.append(f"| `{c.claim_id}` | {icon} | {conf} | {clean_stmt} | *\"{excerpt}\"* | {src_link} |")
         report_sections.append("")
 
-    # Section 9: Strategic Implications & Forward Outlook
+    # Section 9: Strategic Conclusion & Forward Outlook
     section_num = 9
     report_sections.extend([
-        f"## {section_num}. Strategic Implications & Forward Outlook\n",
+        f"## {section_num}. Strategic Conclusion & Forward Outlook\n",
         _sanitize_report_text(conclusion, topic) if conclusion
         else f"Strategic decision-making regarding {topic} requires ongoing empirical observation.",
         ""
@@ -1298,7 +1298,7 @@ def parse_writer_claims_response(
         if any(h in lower for h in ["# key findings", "## key findings", "### findings", "claims:"]):
             current_section = "findings"
             continue
-        elif any(h in lower for h in ["# conclusion", "## conclusion", "### conclusion"]):
+        elif any(h in lower for h in ["# conclusion", "## conclusion", "### conclusion", "strategic conclusion", "forward outlook", "strategic outlook"]):
             current_section = "conclusion"
             continue
         elif any(h in lower for h in ["# sources", "## sources", "# references"]):

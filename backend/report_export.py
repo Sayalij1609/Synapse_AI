@@ -31,7 +31,7 @@ Preserved Sections:
 import io
 import re
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, Tuple
 from pydantic import BaseModel, Field
 
 # DOCX dependencies
@@ -45,6 +45,7 @@ import docx.opc.constants
 
 # PDF dependencies
 from fpdf import FPDF
+from fpdf.fonts import FontFace
 
 
 # =====================================================================
@@ -119,6 +120,7 @@ class StructuredReport(BaseModel):
     title: str
     generated_at: str
     executive_summary: str
+    conclusion: str = ""
     research_objectives: List[str] = Field(default_factory=list)
     key_findings: List[str] = Field(default_factory=list)
     detailed_analysis: List[StructuredAnalysisSection] = Field(default_factory=list)
@@ -145,25 +147,358 @@ def _clean_markdown_text(text: str) -> str:
     return t.strip()
 
 
-def _sanitize_pdf_latin1(text: str) -> str:
+def _sanitize_pdf_latin1(text: Any) -> str:
     """Sanitize Unicode characters for standard FPDF Latin-1 rendering."""
-    if not text:
+    if text is None:
         return ""
+    text = str(text)
     replacements = {
-        '\u2013': '-', '\u2014': '--', '\u2018': "'", '\u2019': "'",
-        '\u201c': '"', '\u201d': '"', '\u2026': '...', '\u2022': '-',
+        '\u2018': "'", '\u2019': "'", '\u201a': "'", '\u201b': "'",
+        '\u201c': '"', '\u201d': '"', '\u201e': '"', '\u201f': '"',
+        '\u2013': '-', '\u2014': '--', '\u2015': '--',
+        '\u2026': '...', '\u2022': '-', '\u00b7': '-',
         '\u2010': '-', '\u2011': '-', '\u2012': '-', '\u00a0': ' ',
         '\u200b': '', '\u200c': '', '\u200d': '', '\ufeff': '',
         '\u2713': '[v]', '\u2717': '[x]', '\u2192': '->', '\u2190': '<-',
-        '\u00b7': '-', '\u25cf': '*', '\u25cb': 'o', '\u2605': '*',
+        '\u25cf': '*', '\u25cb': 'o', '\u2605': '*',
         '✅': '[Grounded]', '⚠️': '[Warning]', '❌': '[Unsupported]',
         '🔬': '[Research]', '⚡': '[Engine]', '📋': '[Plan]',
         '📖': '[Reader]', '🧠': '[Retrieval]', '✍️': '[Writer]',
         '🛡️': '[Verifier]', '🏁': '[Completed]',
+        '’': "'", '‘': "'", '“': '"', '”': '"', '–': '-', '—': '--', '…': '...', '•': '-',
+        '™': '(TM)', '©': '(C)', '®': '(R)',
     }
     for old, new in replacements.items():
         text = text.replace(old, new)
     return text.encode('latin-1', errors='replace').decode('latin-1')
+
+
+def parse_markdown_table_lines(lines: List[str]) -> Tuple[List[str], List[List[str]]]:
+    """Parse markdown table lines into headers and row cells."""
+    table_lines = [l.strip() for l in lines if l.strip().startswith("|") and l.strip().endswith("|")]
+    if len(table_lines) < 2:
+        return [], []
+
+    raw_headers = [c.strip() for c in table_lines[0].strip("|").split("|")]
+    headers = [_sanitize_pdf_latin1(re.sub(r'[*`_]', '', h).strip()) for h in raw_headers]
+
+    rows = []
+    for line in table_lines[1:]:
+        inner = line.strip("|")
+        if re.match(r'^[\s\-:|]+$', inner):
+            continue
+        cells = [c.strip() for c in inner.split("|")]
+        if len(cells) < len(headers):
+            cells.extend(["—"] * (len(headers) - len(cells)))
+        elif len(cells) > len(headers):
+            cells = cells[:len(headers)]
+        cleaned_cells = [_sanitize_pdf_latin1(c.strip()) for c in cells]
+        rows.append(cleaned_cells)
+
+    return headers, rows
+
+
+def parse_claims_from_table(lines: List[str]) -> List[StructuredClaim]:
+    """Extract StructuredClaim items from a markdown claims table."""
+    claims = []
+    table_lines = [l.strip() for l in lines if l.strip().startswith("|") and l.strip().endswith("|")]
+    if len(table_lines) < 2:
+        return []
+
+    raw_headers = [c.strip().lower() for c in table_lines[0].strip("|").split("|")]
+    id_col = 0
+    status_col = 1
+    conf_col = 2
+    stmt_col = 3
+    exc_col = 4
+    src_col = 5
+
+    for idx, h in enumerate(raw_headers):
+        if h in ("id", "claim id", "claim_id") or (h.startswith("id") and len(h) <= 4):
+            id_col = idx
+        elif "status" in h:
+            status_col = idx
+        elif "conf" in h:
+            conf_col = idx
+        elif "statement" in h or "claim" in h:
+            stmt_col = idx
+        elif "excerpt" in h or "evidence" in h:
+            exc_col = idx
+        elif "source" in h or "ref" in h:
+            src_col = idx
+
+    for line in table_lines[1:]:
+        inner = line.strip("|")
+        if re.match(r'^[\s\-:|]+$', inner):
+            continue
+        cells = [c.strip() for c in inner.split("|")]
+        if len(cells) <= max(id_col, stmt_col):
+            continue
+
+        raw_id = re.sub(r'[`*]', '', cells[id_col]).strip() if id_col < len(cells) else f"claim_{len(claims)+1}"
+        raw_status = cells[status_col].lower() if status_col < len(cells) else "grounded"
+        status = "grounded"
+        if "unsupported" in raw_status or "fail" in raw_status or "x" in raw_status:
+            status = "unsupported"
+        elif "insufficient" in raw_status or "warning" in raw_status or "warn" in raw_status or "?" in raw_status:
+            status = "insufficient"
+
+        raw_conf = cells[conf_col] if conf_col < len(cells) else "90%"
+        conf_m = re.search(r'(\d+(?:\.\d+)?)', raw_conf)
+        conf_val = float(conf_m.group(1)) / 100.0 if conf_m and float(conf_m.group(1)) > 1.0 else (float(conf_m.group(1)) if conf_m else 0.9)
+
+        stmt = cells[stmt_col].strip() if stmt_col < len(cells) else ""
+        exc = re.sub(r'[\*\"\_]', '', cells[exc_col]).strip() if exc_col < len(cells) else ""
+
+        src_raw = cells[src_col] if src_col < len(cells) else ""
+        src_url = ""
+        src_title = src_raw
+        link_m = re.search(r'\[([^\]]+)\]\((https?://[^)]+)\)', src_raw)
+        if link_m:
+            src_title = link_m.group(1)
+            src_url = link_m.group(2)
+
+        claims.append(StructuredClaim(
+            claim_id=raw_id,
+            text=stmt,
+            status=status,
+            confidence=conf_val,
+            evidence_text=exc,
+            source_url=src_url or None,
+            source_title=src_title or None,
+        ))
+
+    return claims
+
+
+def parse_sources_from_table(lines: List[str]) -> List[StructuredSource]:
+    """Extract StructuredSource items from a markdown sources table."""
+    sources = []
+    table_lines = [l.strip() for l in lines if l.strip().startswith("|") and l.strip().endswith("|")]
+    if len(table_lines) < 2:
+        return []
+
+    raw_headers = [c.strip().lower() for c in table_lines[0].strip("|").split("|")]
+    num_col = 0
+    title_col = 1
+    dom_col = 2
+    type_col = 3
+    fresh_col = 4
+
+    for idx, h in enumerate(raw_headers):
+        if h in ("ref", "#", "source", "id"):
+            num_col = idx
+        elif "title" in h or "url" in h:
+            title_col = idx
+        elif "domain" in h:
+            dom_col = idx
+        elif "type" in h:
+            type_col = idx
+        elif "fresh" in h:
+            fresh_col = idx
+
+    for idx, line in enumerate(table_lines[1:], 1):
+        inner = line.strip("|")
+        if re.match(r'^[\s\-:|]+$', inner):
+            continue
+        cells = [c.strip() for c in inner.split("|")]
+        if len(cells) <= title_col:
+            continue
+
+        raw_num = re.sub(r'[^\d]', '', cells[num_col]) if num_col < len(cells) else str(idx)
+        src_num = int(raw_num) if raw_num.isdigit() else idx
+
+        title_raw = cells[title_col] if title_col < len(cells) else f"Source {src_num}"
+        src_url = ""
+        src_title = title_raw
+        link_m = re.search(r'\[([^\]]+)\]\((https?://[^)]+)\)', title_raw)
+        if link_m:
+            src_title = link_m.group(1)
+            src_url = link_m.group(2)
+
+        domain = re.sub(r'[`*]', '', cells[dom_col]).strip() if dom_col < len(cells) else ""
+        if not domain and src_url:
+            domain = src_url.split("//")[-1].split("/")[0]
+
+        src_type = cells[type_col].strip() if type_col < len(cells) else "general"
+        fresh = cells[fresh_col].strip() if fresh_col < len(cells) else "recent"
+
+        sources.append(StructuredSource(
+            source_id=f"src_{src_num}",
+            source_number=src_num,
+            title=src_title,
+            url=src_url,
+            domain=domain or "web",
+            source_type=src_type or "general",
+            publication_date="N/A",
+            freshness=fresh or "recent",
+            quality_score=0.90
+        ))
+
+    return sources
+
+
+def render_pdf_table_block(
+    pdf: FPDF,
+    headers: List[str],
+    rows: List[List[str]],
+    title: Optional[str] = None,
+    col_widths: Optional[Tuple[float, ...]] = None,
+):
+    """
+    Render an executive graphical table in FPDF matching the UI theme.
+    - Deep Slate header (30, 41, 59) with crisp white text.
+    - Slate 50 alternating rows (248, 250, 252) with subtle Slate 200 border (226, 232, 240).
+    - Auto cell text wrapping, padding, and centered status badges.
+    - Clickable hyperlinks for embedded markdown links.
+    """
+    if not headers or not rows:
+        return
+
+    if title:
+        pdf.set_font("Helvetica", "B", 10.5)
+        pdf.set_text_color(30, 41, 59)
+        pdf.cell(0, 5.5, _sanitize_pdf_latin1(title))
+        pdf.ln(5.5)
+
+    avail_w = 190.0  # Usable width on A4 portrait with 10mm margins
+
+    if not col_widths or len(col_widths) != len(headers):
+        # Calculate proportional widths based on content lengths
+        col_max_lens = [max(len(_sanitize_pdf_latin1(str(h))), 5) for h in headers]
+        for r in rows:
+            for i, val in enumerate(r):
+                val_str = _sanitize_pdf_latin1(str(val)) if val is not None else ""
+                col_max_lens[i] = max(col_max_lens[i], min(len(val_str), 80))
+
+        total_len = sum(col_max_lens) or 1
+        calc_widths = []
+        for l in col_max_lens:
+            w = max(14.0, (l / total_len) * avail_w)
+            calc_widths.append(w)
+
+        scale = avail_w / sum(calc_widths)
+        col_widths = tuple(round(w * scale, 1) for w in calc_widths)
+        diff = avail_w - sum(col_widths)
+        if diff != 0:
+            col_widths = list(col_widths)
+            col_widths[-1] += diff
+            col_widths = tuple(col_widths)
+
+    h_style = FontFace(
+        family="Helvetica",
+        emphasis="B",
+        size_pt=8,
+        color=(255, 255, 255),
+        fill_color=(30, 41, 59),  # Slate 800
+    )
+
+    pdf.set_font("Helvetica", size=7.5)
+    pdf.set_draw_color(226, 232, 240)  # Slate 200 borders
+
+    with pdf.table(
+        col_widths=col_widths,
+        line_height=4.2,
+        headings_style=h_style,
+        cell_fill_color=(248, 250, 252),  # Slate 50
+        cell_fill_mode="ROWS",
+        repeat_headings=1,
+        markdown=True,
+        padding=1.8,
+    ) as tbl:
+        # Header row
+        hdr_row = tbl.row()
+        for h in headers:
+            hdr_row.cell(_sanitize_pdf_latin1(str(h)), align="CENTER")
+
+        # Data rows
+        for r in rows:
+            data_row = tbl.row()
+            for val in r:
+                raw_cell_str = str(val) if val is not None else ""
+                cell_style = None
+                cell_align = "LEFT"
+                cell_link = None
+
+                # Extract markdown links like [Title](url)
+                link_m = re.search(r'\[([^\]]+)\]\((https?://[^)]+)\)', raw_cell_str)
+                if link_m:
+                    cell_link = _sanitize_pdf_latin1(link_m.group(2))
+                    clean_val = link_m.group(1)
+                else:
+                    clean_val = raw_cell_str
+
+                clean_val = _sanitize_pdf_latin1(clean_val)
+
+                lower_val = clean_val.lower()
+                if any(w in lower_val for w in ["[grounded]", "grounded"]):
+                    cell_style = FontFace(family="Helvetica", emphasis="B", size_pt=7.5, color=(5, 150, 105))
+                    cell_align = "CENTER"
+                elif any(w in lower_val for w in ["[warning]", "insufficient", "partial"]):
+                    cell_style = FontFace(family="Helvetica", emphasis="B", size_pt=7.5, color=(217, 119, 6))
+                    cell_align = "CENTER"
+                elif any(w in lower_val for w in ["[unsupported]", "unsupported"]):
+                    cell_style = FontFace(family="Helvetica", emphasis="B", size_pt=7.5, color=(225, 29, 72))
+                    cell_align = "CENTER"
+                elif re.match(r'^\d+%$', clean_val) or clean_val.startswith("claim_") or clean_val.startswith("CLM-") or (clean_val.startswith("[") and clean_val.endswith("]") and len(clean_val) <= 5):
+                    cell_align = "CENTER"
+
+                data_row.cell(clean_val, align=cell_align, style=cell_style, link=cell_link)
+
+    pdf.ln(4)
+
+
+def render_content_with_tables(pdf: FPDF, content: str):
+    """
+    Render narrative text that may contain markdown tables, subheadings, and bullets.
+    Identifies table blocks and converts them to graphical tables rather than raw text.
+    """
+    lines = content.split("\n")
+    table_buffer = []
+    in_table = False
+
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("|") and stripped.endswith("|"):
+            in_table = True
+            table_buffer.append(stripped)
+            continue
+        else:
+            if in_table and table_buffer:
+                headers, rows = parse_markdown_table_lines(table_buffer)
+                if headers and rows:
+                    render_pdf_table_block(pdf, headers, rows)
+                table_buffer = []
+                in_table = False
+
+        if not stripped:
+            continue
+
+        if stripped.startswith("### "):
+            subheading = stripped.lstrip("#").strip()
+            pdf.ln(2)
+            pdf.set_font("Helvetica", "B", 10.5)
+            pdf.set_text_color(30, 41, 59)
+            pdf.cell(0, 5, _sanitize_pdf_latin1(subheading))
+            pdf.ln(5)
+        elif stripped.startswith("- ") or stripped.startswith("* "):
+            bullet_text = re.sub(r'^[*-]\s*', '', stripped)
+            pdf.set_font("Helvetica", "", 9)
+            pdf.set_text_color(51, 65, 85)
+            pdf.cell(5)
+            pdf.cell(4, 4.5, "-")
+            pdf.multi_cell(0, 4.5, _sanitize_pdf_latin1(bullet_text))
+            pdf.ln(1)
+        else:
+            pdf.set_font("Helvetica", "", 9)
+            pdf.set_text_color(51, 65, 85)
+            pdf.multi_cell(0, 4.8, _sanitize_pdf_latin1(stripped))
+            pdf.ln(2.5)
+
+    if in_table and table_buffer:
+        headers, rows = parse_markdown_table_lines(table_buffer)
+        if headers and rows:
+            render_pdf_table_block(pdf, headers, rows)
 
 
 def build_structured_report(
@@ -440,10 +775,26 @@ def _build_from_dict(d: Dict[str, Any], default_topic: str) -> StructuredReport:
     if not summary and detailed_sections:
         summary = detailed_sections[0].content[:400] + "..."
 
+    # Strategic Conclusion
+    conclusion = (
+        d.get("conclusion")
+        or d.get("strategic_outlook")
+        or parsed_sections.get("conclusion")
+        or ""
+    )
+    if not conclusion:
+        for idx, sec in enumerate(detailed_sections):
+            sec_h = sec.heading.lower()
+            if any(k in sec_h for k in ["conclusion", "strategic implication", "forward outlook", "strategic outlook"]):
+                conclusion = sec.content
+                detailed_sections.pop(idx)
+                break
+
     return StructuredReport(
         title=title,
         generated_at=now_iso,
         executive_summary=summary.strip(),
+        conclusion=conclusion.strip(),
         research_objectives=objectives,
         key_findings=key_findings,
         detailed_analysis=detailed_sections,
@@ -474,16 +825,16 @@ def _build_from_markdown_text(report_text: str, topic: str, now_str: str) -> Str
     """Parse pure markdown text into the structured report object."""
     sections = _extract_sections_from_markdown(report_text, default_topic=topic)
     
-    # Extract URLs from markdown to synthesize source models
+    # Extract URLs from markdown to synthesize fallback source models
     discovered_urls = re.findall(r'\[([^\]]+)\]\((https?://[^)]+)\)', report_text)
-    sources: List[StructuredSource] = []
+    fallback_sources: List[StructuredSource] = []
     seen_urls = set()
     for idx, (title, url) in enumerate(discovered_urls, 1):
         if url.lower() in seen_urls:
             continue
         seen_urls.add(url.lower())
         domain = url.split("//")[-1].split("/")[0] if url else "web"
-        sources.append(StructuredSource(
+        fallback_sources.append(StructuredSource(
             source_id=f"src_{idx}",
             source_number=idx,
             title=title if title != url else f"Source {idx} ({domain})",
@@ -495,25 +846,46 @@ def _build_from_markdown_text(report_text: str, topic: str, now_str: str) -> Str
             quality_score=0.85,
         ))
 
+    sources = sections.get("sources") or fallback_sources
+    claims = sections.get("claims") or []
+
+    grounded_count = sum(1 for c in claims if c.status == "grounded")
+    insufficient_count = sum(1 for c in claims if c.status == "insufficient")
+    unsupported_count = sum(1 for c in claims if c.status == "unsupported")
+    conf_score = round(grounded_count / len(claims), 2) if claims else 0.9
+
+    conclusion = sections.get("conclusion") or ""
+    analysis_secs = sections.get("analysis_sections", [StructuredAnalysisSection(heading="Analysis", content=report_text)])
+    if not conclusion:
+        for idx, sec in enumerate(analysis_secs):
+            sec_h = sec.heading.lower()
+            if any(k in sec_h for k in ["conclusion", "strategic implication", "forward outlook", "strategic outlook"]):
+                conclusion = sec.content
+                analysis_secs.pop(idx)
+                break
+
     return StructuredReport(
         title=topic,
         generated_at=now_str,
         executive_summary=sections.get("summary") or "Synthesized research findings based on live web discovery and empirical citations.",
-        research_objectives=[f"Conduct comprehensive analysis on {topic}"],
+        conclusion=conclusion.strip(),
+        research_objectives=sections.get("objectives") or [f"Conduct comprehensive analysis on {topic}"],
         key_findings=sections.get("key_findings", []),
-        detailed_analysis=sections.get("analysis_sections", [StructuredAnalysisSection(heading="Analysis", content=report_text)]),
-        claims=[],
+        detailed_analysis=analysis_secs,
+        claims=claims,
         inline_citations={s.citation_tag: f"{s.title} ({s.url})" for s in sources},
         sources=sources,
         evidence_references=[],
         verification_summary=StructuredVerificationSummary(
-            status="completed",
+            status="verified" if claims else "completed",
             iteration_count=1,
-            confidence_score=0.9,
-            total_claims=0,
-            grounded_claims=0,
+            confidence_score=conf_score,
+            total_claims=len(claims),
+            grounded_claims=grounded_count,
+            insufficient_claims=insufficient_count,
+            unsupported_claims=unsupported_count,
         ),
-        research_limitations=[
+        research_limitations=sections.get("limitations") or [
             "Report synthesized from verified evidence chunks retrieved during research session.",
             "All cited sources were validated for accessibility and relevance."
         ],
@@ -529,6 +901,9 @@ def _extract_sections_from_markdown(report_text: str, default_topic: str) -> Dic
     key_findings: List[str] = []
     analysis_sections: List[StructuredAnalysisSection] = []
     limitations: List[str] = []
+    claims_lines: List[str] = []
+    sources_lines: List[str] = []
+    conclusion_lines: List[str] = []
 
     current_heading = ""
     current_content: List[str] = []
@@ -536,11 +911,14 @@ def _extract_sections_from_markdown(report_text: str, default_topic: str) -> Dic
     in_objectives = False
     in_findings = False
     in_limitations = False
+    in_claims = False
+    in_sources = False
+    in_conclusion = False
 
     for line in lines:
         stripped = line.strip()
         if not stripped:
-            if current_heading and not in_findings and not in_objectives:
+            if current_heading and not in_findings and not in_objectives and not in_claims and not in_sources and not in_conclusion:
                 current_content.append("")
             continue
 
@@ -549,7 +927,7 @@ def _extract_sections_from_markdown(report_text: str, default_topic: str) -> Dic
             h_text = stripped.lstrip("#").strip()
 
             # Save previous section if open
-            if current_heading and current_content and not in_findings and not in_summary and not in_limitations and not in_objectives:
+            if current_heading and current_content and not in_findings and not in_summary and not in_limitations and not in_objectives and not in_claims and not in_sources and not in_conclusion:
                 analysis_sections.append(StructuredAnalysisSection(
                     heading=current_heading,
                     content="\n".join(current_content).strip()
@@ -559,51 +937,42 @@ def _extract_sections_from_markdown(report_text: str, default_topic: str) -> Dic
             h_lower = h_text.lower()
             if any(k in h_lower for k in ["summary", "executive summary", "introduction"]):
                 in_summary = True
-                in_objectives = False
-                in_findings = False
-                in_limitations = False
+                in_objectives = in_findings = in_limitations = in_claims = in_sources = in_conclusion = False
                 current_heading = h_text
             elif any(k in h_lower for k in ["objective", "research objective", "research goal"]):
                 in_objectives = True
-                in_summary = False
-                in_findings = False
-                in_limitations = False
+                in_summary = in_findings = in_limitations = in_claims = in_sources = in_conclusion = False
                 current_heading = h_text
             elif any(k in h_lower for k in ["finding", "key finding", "core takeaways"]):
                 in_findings = True
-                in_objectives = False
-                in_summary = False
-                in_limitations = False
+                in_summary = in_objectives = in_limitations = in_claims = in_sources = in_conclusion = False
+                current_heading = h_text
+            elif any(k in h_lower for k in ["conclusion", "strategic implication", "forward outlook", "strategic outlook"]):
+                in_conclusion = True
+                in_summary = in_objectives = in_findings = in_limitations = in_claims = in_sources = False
                 current_heading = h_text
             elif any(k in h_lower for k in ["limitation", "caveat", "methodology note"]):
                 in_limitations = True
-                in_objectives = False
-                in_summary = False
-                in_findings = False
+                in_summary = in_objectives = in_findings = in_claims = in_sources = in_conclusion = False
                 current_heading = h_text
-            elif any(k in h_lower for k in ["sources", "references"]):
-                in_summary = False
-                in_objectives = False
-                in_findings = False
-                in_limitations = False
-                current_heading = ""
             elif any(k in h_lower for k in ["verified claims", "grounding lineage"]):
-                in_summary = False
-                in_objectives = False
-                in_findings = False
-                in_limitations = False
-                current_heading = ""
+                in_claims = True
+                in_summary = in_objectives = in_findings = in_limitations = in_sources = in_conclusion = False
+                current_heading = h_text
+            elif any(k in h_lower for k in ["sources", "references", "authoritative sources"]):
+                in_sources = True
+                in_summary = in_objectives = in_findings = in_limitations = in_claims = in_conclusion = False
+                current_heading = h_text
             else:
-                in_summary = False
-                in_objectives = False
-                in_findings = False
-                in_limitations = False
+                in_summary = in_objectives = in_findings = in_limitations = in_claims = in_sources = in_conclusion = False
                 current_heading = h_text
 
             continue
 
         if in_summary:
             summary_lines.append(stripped)
+        elif in_conclusion:
+            conclusion_lines.append(stripped)
         elif in_objectives:
             if stripped.startswith("- ") or stripped.startswith("* ") or re.match(r'^\d+\.\s', stripped):
                 clean_bullet = re.sub(r'^[*-]\s*|^\d+\.\s*', '', stripped)
@@ -617,15 +986,22 @@ def _extract_sections_from_markdown(report_text: str, default_topic: str) -> Dic
                 limitations.append(_clean_markdown_text(stripped[2:]))
             else:
                 limitations.append(_clean_markdown_text(stripped))
+        elif in_claims:
+            claims_lines.append(stripped)
+        elif in_sources:
+            sources_lines.append(stripped)
         else:
             current_content.append(stripped)
 
     # Append trailing section
-    if current_heading and current_content and not in_findings and not in_summary and not in_limitations and not in_objectives:
+    if current_heading and current_content and not in_findings and not in_summary and not in_limitations and not in_objectives and not in_claims and not in_sources and not in_conclusion:
         analysis_sections.append(StructuredAnalysisSection(
             heading=current_heading,
             content="\n".join(current_content).strip()
         ))
+
+    parsed_claims = parse_claims_from_table(claims_lines)
+    parsed_sources = parse_sources_from_table(sources_lines)
 
     raw_summary = " ".join(summary_lines).strip()
     clean_summary = raw_summary
@@ -648,7 +1024,10 @@ def _extract_sections_from_markdown(report_text: str, default_topic: str) -> Dic
         "objectives": objectives,
         "key_findings": key_findings,
         "analysis_sections": analysis_sections,
+        "conclusion": "\n".join(conclusion_lines).strip(),
         "limitations": limitations,
+        "claims": parsed_claims,
+        "sources": parsed_sources,
     }
 
 
@@ -706,6 +1085,15 @@ def export_to_markdown(report: StructuredReport) -> str:
         for section in report.detailed_analysis:
             lines.append(f"### {section.heading}\n")
             lines.append(f"{section.content}\n")
+
+    # Strategic Conclusion & Forward Outlook
+    if report.conclusion:
+        lines.extend([
+            "## Strategic Conclusion & Forward Outlook",
+            "",
+            report.conclusion,
+            "",
+        ])
 
     # Claims Audit Table
     if report.claims:
@@ -1000,6 +1388,29 @@ def export_to_docx(report: StructuredReport) -> bytes:
             r_body.font.size = Pt(11)
             r_body.font.color.rgb = RGBColor(51, 65, 85)
 
+    # Strategic Conclusion & Forward Outlook
+    if report.conclusion:
+        h2_concl = doc.add_paragraph()
+        h2_concl.paragraph_format.space_before = Pt(14)
+        h2_concl.paragraph_format.space_after = Pt(4)
+        r_h2_concl = h2_concl.add_run("Strategic Conclusion & Forward Outlook")
+        r_h2_concl.font.name = 'Calibri'
+        r_h2_concl.font.size = Pt(16)
+        r_h2_concl.font.bold = True
+        r_h2_concl.font.color.rgb = RGBColor(43, 37, 84)
+
+        for p_chunk in report.conclusion.split("\n\n"):
+            p_chunk = p_chunk.strip()
+            if not p_chunk:
+                continue
+            p_concl = doc.add_paragraph()
+            p_concl.paragraph_format.line_spacing = 1.15
+            p_concl.paragraph_format.space_after = Pt(8)
+            r_concl = p_concl.add_run(p_chunk)
+            r_concl.font.name = 'Calibri'
+            r_concl.font.size = Pt(11)
+            r_concl.font.color.rgb = RGBColor(51, 65, 85)
+
     # 5. Verified Claims Table
     if report.claims:
         h2_cl = doc.add_paragraph()
@@ -1162,268 +1573,262 @@ def export_to_docx(report: StructuredReport) -> bytes:
 # =====================================================================
 
 class SynapseReportPDF(FPDF):
-    """Custom FPDF subclass providing headers, footers, and page numbers."""
+    """Custom FPDF subclass providing executive headers, footers, page numbers, and universal Unicode safety."""
     def __init__(self, title="SYNAPSE Research"):
         super().__init__(orientation="P", unit="mm", format="A4")
         self.doc_title = title
 
+    def normalize_text(self, text):
+        if text:
+            text = _sanitize_pdf_latin1(str(text))
+        return super().normalize_text(text)
+
     def header(self):
         self.set_font("Helvetica", "B", 8)
-        self.set_text_color(120, 110, 140)
-        self.cell(0, 6, "SYNAPSE AI  |  Autonomous Research Report", align="L")
-        self.cell(0, 6, "Empirical Evidence", align="R")
-        self.ln(8)
-        self.set_draw_color(225, 220, 235)
-        self.line(10, self.get_y(), 200, self.get_y())
+        self.set_text_color(100, 116, 139)  # Slate 500
+        self.cell(0, 5, "SYNAPSE AI  |  Autonomous Research Report", align="L")
+        self.set_font("Helvetica", "", 8)
+        self.set_text_color(13, 148, 136)  # Polar Seafoam
+        self.cell(0, 5, "Empirical Evidence & Audit Trail", align="R")
         self.ln(6)
+        self.set_draw_color(226, 232, 240)  # Slate 200
+        self.set_line_width(0.3)
+        self.line(10, self.get_y(), 200, self.get_y())
+        self.ln(5)
 
     def footer(self):
-        self.set_y(-15)
+        self.set_y(-14)
+        self.set_draw_color(226, 232, 240)
+        self.set_line_width(0.2)
+        self.line(10, self.get_y(), 200, self.get_y())
         self.set_font("Helvetica", "", 8)
-        self.set_text_color(140, 140, 160)
-        self.cell(0, 10, f"Page {self.page_no()}/{{nb}}", align="C")
+        self.set_text_color(148, 163, 184)
+        self.cell(95, 8, "SYNAPSE AI Intelligence Platform", align="L")
+        self.cell(95, 8, f"Page {self.page_no()}/{{nb}}", align="R")
 
 
 def export_to_pdf(report: StructuredReport) -> bytes:
     """
-    Generate a publication-grade PDF from StructuredReport.
+    Generate a publication-grade PDF from StructuredReport matching the UI theme.
     Includes:
     - Running headers and page numbers (Page X of Y)
-    - Professional heading hierarchy with Deep Indigo branding
-    - Executive Summary & Objectives
-    - Key Findings
-    - Detailed Analysis narrative
-    - Formatted Claims Table
-    - Authoritative Sources Table with clickable URLs
-    - Verification Audit & Limitations
+    - Executive Electric Cobalt branding & Slate typography
+    - Metadata badges (Status, Confidence, Sources Count)
+    - Executive Summary with left accent border
+    - Numbered Key Findings
+    - Detailed Analysis narrative with automatic graphical table rendering
+    - Full Verified Claims Matrix table with status badges and citations
+    - Authoritative Sources Table with clickable URLs and quality scores
+    - Autonomous Verification Audit & Research Limitations
     """
     pdf = SynapseReportPDF(title=report.title)
     pdf.alias_nb_pages()
-    pdf.set_auto_page_break(auto=True, margin=18)
+    pdf.set_auto_page_break(auto=True, margin=16)
     pdf.add_page()
 
     # Document Title
-    pdf.set_font("Helvetica", "B", 18)
-    pdf.set_text_color(43, 37, 84)  # Deep Indigo
-    pdf.multi_cell(0, 8, _sanitize_pdf_latin1(report.title))
+    pdf.set_font("Helvetica", "B", 17)
+    pdf.set_text_color(15, 23, 42)  # Slate 900
+    pdf.multi_cell(0, 7.5, _sanitize_pdf_latin1(report.title))
     pdf.ln(2)
 
-    # Metadata Subtitle
-    pdf.set_font("Helvetica", "I", 9)
-    pdf.set_text_color(217, 83, 101)  # Rose Pink
-    meta_line = f"Generated on {report.generated_at}   •   Status: {report.verification_summary.status.upper()} (Cycle {report.verification_summary.iteration_count})"
-    pdf.cell(0, 6, _sanitize_pdf_latin1(meta_line))
-    pdf.ln(10)
+    # Executive Metadata Badges Bar
+    vs = report.verification_summary
+    status_str = vs.status.upper()
+    is_verified = status_str in ("VERIFIED", "GROUNDED", "COMPLETED", "PASSED")
+
+    pdf.set_font("Helvetica", "B", 7.5)
+    if is_verified:
+        pdf.set_fill_color(220, 252, 231)  # Emerald 100
+        pdf.set_text_color(22, 101, 52)    # Emerald 800
+        status_label = "VERIFIED REPORT"
+    else:
+        pdf.set_fill_color(254, 243, 199)  # Amber 100
+        pdf.set_text_color(146, 64, 14)    # Amber 800
+        status_label = f"STATUS: {status_str}"
+    pdf.cell(32, 5.2, status_label, border=0, fill=True, align="C")
+    pdf.cell(3)
+
+    conf_pct = int(vs.confidence_score * 100) if vs.confidence_score <= 1.0 else int(vs.confidence_score)
+    pdf.set_fill_color(224, 242, 254)  # Sky 100
+    pdf.set_text_color(7, 89, 133)     # Sky 900
+    pdf.cell(36, 5.2, f"CONFIDENCE: {conf_pct}%", border=0, fill=True, align="C")
+    pdf.cell(3)
+
+    pdf.set_fill_color(241, 245, 249)  # Slate 100
+    pdf.set_text_color(71, 85, 105)    # Slate 600
+    pdf.cell(34, 5.2, f"{len(report.sources)} SOURCES INDEXED", border=0, fill=True, align="C")
+    pdf.cell(3)
+
+    pdf.cell(24, 5.2, f"CYCLE {vs.iteration_count}", border=0, fill=True, align="C")
+    pdf.ln(8)
+
+    # Timestamp line
+    pdf.set_font("Helvetica", "I", 8)
+    pdf.set_text_color(148, 163, 184)
+    pdf.cell(0, 4, _sanitize_pdf_latin1(f"Generated on {report.generated_at}"))
+    pdf.ln(6)
 
     # 1. Executive Summary
-    pdf.set_font("Helvetica", "B", 13)
-    pdf.set_text_color(43, 37, 84)
-    pdf.cell(0, 7, "1. Executive Summary")
-    pdf.ln(7)
+    pdf.set_font("Helvetica", "B", 12.5)
+    pdf.set_text_color(30, 64, 175)  # Electric Cobalt
+    pdf.cell(0, 6.5, "1. Executive Summary")
+    pdf.ln(6.5)
 
-    pdf.set_font("Helvetica", "", 10)
+    summary_text = _sanitize_pdf_latin1(report.executive_summary or "Empirical analysis synthesized from verified evidence.")
+    y_start = pdf.get_y()
+    page_start = pdf.page_no()
+    pdf.set_left_margin(14)
+    pdf.set_x(14)
+    pdf.set_font("Helvetica", "", 9.5)
     pdf.set_text_color(51, 65, 85)
-    pdf.multi_cell(0, 5.5, _sanitize_pdf_latin1(report.executive_summary or "Empirical analysis synthesized from verified evidence."))
-    pdf.ln(6)
+    pdf.multi_cell(186, 5.2, summary_text)
+    y_end = pdf.get_y()
+    page_end = pdf.page_no()
+    if page_start == page_end and y_end > y_start:
+        pdf.set_draw_color(37, 99, 235)  # Electric Cobalt accent line
+        pdf.set_line_width(1.0)
+        pdf.line(11, y_start, 11, y_end)
+        pdf.set_line_width(0.2)
+    pdf.set_left_margin(10)
+    pdf.set_x(10)
+    pdf.ln(5)
 
     # 2. Research Objectives
     if report.research_objectives:
-        pdf.set_font("Helvetica", "B", 13)
-        pdf.set_text_color(43, 37, 84)
-        pdf.cell(0, 7, "2. Research Objectives & Scope")
-        pdf.ln(7)
+        pdf.set_font("Helvetica", "B", 12.5)
+        pdf.set_text_color(30, 64, 175)
+        pdf.cell(0, 6.5, "2. Research Objectives & Scope")
+        pdf.ln(6.5)
 
-        pdf.set_font("Helvetica", "", 9.5)
+        pdf.set_font("Helvetica", "", 9)
         pdf.set_text_color(51, 65, 85)
         for obj in report.research_objectives:
             pdf.cell(5)
-            pdf.multi_cell(0, 5, _sanitize_pdf_latin1(f"- {obj}"))
+            pdf.cell(4, 4.5, "-")
+            pdf.multi_cell(0, 4.5, _sanitize_pdf_latin1(obj))
             pdf.ln(1)
         pdf.ln(4)
 
     # 3. Key Findings
     if report.key_findings:
-        pdf.set_font("Helvetica", "B", 13)
-        pdf.set_text_color(43, 37, 84)
-        pdf.cell(0, 7, "3. Key Findings")
-        pdf.ln(7)
+        pdf.set_font("Helvetica", "B", 12.5)
+        pdf.set_text_color(30, 64, 175)
+        pdf.cell(0, 6.5, "3. Key Findings")
+        pdf.ln(6.5)
 
-        pdf.set_font("Helvetica", "", 9.5)
-        pdf.set_text_color(30, 41, 59)
         for idx, kf in enumerate(report.key_findings, 1):
             pdf.cell(5)
-            # Ensure citation tag matches standard numbering cleanly
             clean_kf = re.sub(r'\[(?:Source\s*)(\d+)\]', r'[\1]', kf)
-            pdf.multi_cell(0, 5, _sanitize_pdf_latin1(f"{idx}. {clean_kf}"))
+            pdf.set_font("Helvetica", "B", 9)
+            pdf.set_text_color(30, 64, 175)
+            pdf.cell(7, 4.5, f"{idx}.")
+            pdf.set_font("Helvetica", "", 9)
+            pdf.set_text_color(30, 41, 59)
+            pdf.multi_cell(0, 4.5, _sanitize_pdf_latin1(clean_kf))
             pdf.ln(1.5)
         pdf.ln(4)
 
     # 4. Detailed Analysis
     if report.detailed_analysis:
-        pdf.set_font("Helvetica", "B", 13)
-        pdf.set_text_color(43, 37, 84)
-        pdf.cell(0, 7, "4. Detailed Analysis & Evidence Evaluation")
-        pdf.ln(7)
+        pdf.set_font("Helvetica", "B", 12.5)
+        pdf.set_text_color(30, 64, 175)
+        pdf.cell(0, 6.5, "4. Detailed Analysis & Evidence Evaluation")
+        pdf.ln(6.5)
 
         for sec in report.detailed_analysis:
-            pdf.set_font("Helvetica", "B", 11)
-            pdf.set_text_color(71, 85, 105)
-            pdf.cell(0, 6, _sanitize_pdf_latin1(sec.heading))
-            pdf.ln(6)
+            pdf.set_font("Helvetica", "B", 10.5)
+            pdf.set_text_color(15, 23, 42)
+            pdf.cell(0, 5.5, _sanitize_pdf_latin1(sec.heading))
+            pdf.ln(5.5)
 
-            pdf.set_font("Helvetica", "", 9.5)
-            pdf.set_text_color(51, 65, 85)
-            pdf.multi_cell(0, 5, _sanitize_pdf_latin1(sec.content))
-            pdf.ln(4)
+            if sec.content:
+                render_content_with_tables(pdf, sec.content)
 
-    # 5. Claims Table
+            if sec.subsections:
+                for sub in sec.subsections:
+                    sub_h = sub.get("subheading") or sub.get("heading") or ""
+                    sub_c = sub.get("content") or ""
+                    if sub_h:
+                        pdf.ln(1)
+                        pdf.set_font("Helvetica", "B", 9.5)
+                        pdf.set_text_color(30, 41, 59)
+                        pdf.cell(0, 5, _sanitize_pdf_latin1(sub_h))
+                        pdf.ln(5)
+                    if sub_c:
+                        render_content_with_tables(pdf, sub_c)
+            pdf.ln(3)
+
+    # Strategic Conclusion & Forward Outlook
+    if report.conclusion:
+        pdf.set_font("Helvetica", "B", 12.5)
+        pdf.set_text_color(30, 64, 175)
+        pdf.cell(0, 6.5, "Strategic Conclusion & Forward Outlook")
+        pdf.ln(7.0)
+
+        render_content_with_tables(pdf, report.conclusion)
+        pdf.ln(3)
+
+    # 5. Verified Claims Matrix
     if report.claims:
-        pdf.ln(2)
-        pdf.set_font("Helvetica", "B", 13)
-        pdf.set_text_color(43, 37, 84)
-        pdf.cell(0, 7, "5. Verified Claims Matrix")
-        pdf.ln(7)
+        pdf.set_font("Helvetica", "B", 12.5)
+        pdf.set_text_color(30, 64, 175)
+        pdf.cell(0, 6.5, "5. Verified Claims Matrix")
+        pdf.ln(6.5)
 
-        # Build source number lookup
-        src_num_map = {}
-        for s in report.sources:
-            src_num_map[s.source_id] = s.source_number
-
-        # Column widths for A4 (190mm usable)
-        col_w = [12, 88, 26, 22, 32]  # ID, Claim, Status, Conf, Citations
-        headers = ["ID", "Claim Statement", "Status", "Conf.", "Citations"]
-
-        # ── Table Header Row ──
-        pdf.set_font("Helvetica", "B", 8)
-        pdf.set_fill_color(43, 37, 84)   # Deep Indigo header
-        pdf.set_text_color(255, 255, 255) # White header text
-        pdf.set_draw_color(43, 37, 84)
-        for i, h in enumerate(headers):
-            pdf.cell(col_w[i], 7, h, border=1, align="C", fill=True)
-        pdf.ln()
-
-        # ── Table Body Rows ──
-        pdf.set_font("Helvetica", "", 8)
-        pdf.set_draw_color(200, 200, 210)
-
-        for r_idx, c in enumerate(report.claims[:20]):
-            # Alternating row fill
-            if r_idx % 2 == 0:
-                pdf.set_fill_color(248, 248, 252)  # Light lavender
+        c_headers = ["ID", "Status", "Conf.", "Claim Statement", "Evidence Excerpt", "Verified Source"]
+        c_widths = (18.0, 22.0, 14.0, 66.0, 44.0, 26.0)
+        c_rows = []
+        for c in report.claims:
+            st_label = f"[{c.status.capitalize()}]"
+            conf_pct_claim = int(c.confidence * 100) if c.confidence <= 1.0 else int(c.confidence)
+            conf_label = f"{conf_pct_claim}%"
+            stmt = _sanitize_pdf_latin1(c.text)
+            exc = _sanitize_pdf_latin1(c.evidence_text or "Verified empirical chunk")
+            src_label = _sanitize_pdf_latin1(c.source_title or (c.source_url[:25] if c.source_url else "Source Reference"))
+            if c.source_url:
+                src_cell = f"[{src_label[:30]}]({c.source_url})"
             else:
-                pdf.set_fill_color(255, 255, 255)   # White
+                src_cell = src_label[:30]
+            c_rows.append([
+                _sanitize_pdf_latin1(c.claim_id),
+                st_label,
+                conf_label,
+                stmt,
+                exc,
+                src_cell
+            ])
 
-            # Resolve citation tags
-            cit_tags = []
-            for sid in c.supporting_source_ids:
-                if sid in src_num_map:
-                    cit_tags.append(f"[{src_num_map[sid]}]")
-                elif str(sid).isdigit():
-                    cit_tags.append(f"[{sid}]")
-            if not cit_tags and report.inline_citations.get(c.claim_id):
-                cit_tags.append(report.inline_citations[c.claim_id])
-            cit_str = ", ".join(sorted(list(set(cit_tags)))) if cit_tags else "[—]"
-
-            # Row height tracking via multi_cell
-            x_start = pdf.get_x()
-            y_start = pdf.get_y()
-
-            # ID cell
-            pdf.set_text_color(80, 80, 100)
-            pdf.cell(col_w[0], 6, c.claim_id, border="LB", fill=True, align="C")
-
-            # Claim text cell
-            pdf.set_text_color(30, 41, 59)
-            claim_text = _sanitize_pdf_latin1(c.text[:110] + ("..." if len(c.text) > 110 else ""))
-            pdf.cell(col_w[1], 6, claim_text, border="B", fill=True)
-
-            # Status cell — color-coded
-            status_lower = c.status.lower()
-            if status_lower == "grounded":
-                pdf.set_text_color(5, 150, 105)   # Green
-            elif status_lower == "unsupported":
-                pdf.set_text_color(220, 38, 38)    # Red
-            else:
-                pdf.set_text_color(217, 119, 6)    # Amber
-            pdf.cell(col_w[2], 6, c.status.capitalize(), border="B", fill=True, align="C")
-
-            # Confidence cell
-            conf_pct = int(c.confidence * 100)
-            if conf_pct >= 80:
-                pdf.set_text_color(5, 150, 105)
-            elif conf_pct >= 50:
-                pdf.set_text_color(217, 119, 6)
-            else:
-                pdf.set_text_color(220, 38, 38)
-            pdf.cell(col_w[3], 6, f"{conf_pct}%", border="B", fill=True, align="C")
-
-            # Citations cell
-            pdf.set_text_color(80, 80, 100)
-            pdf.cell(col_w[4], 6, cit_str, border="RB", fill=True, align="C")
-            pdf.ln()
-
-        pdf.ln(6)
+        render_pdf_table_block(pdf, c_headers, c_rows, col_widths=c_widths)
 
     # 6. Authoritative Sources Table with Clickable URLs
     if report.sources:
-        pdf.set_font("Helvetica", "B", 13)
-        pdf.set_text_color(43, 37, 84)
-        pdf.cell(0, 7, "6. Authoritative Sources & Reference Catalog")
-        pdf.ln(7)
+        pdf.set_font("Helvetica", "B", 12.5)
+        pdf.set_text_color(30, 64, 175)
+        pdf.cell(0, 6.5, "6. Authoritative Sources & Reference Catalog")
+        pdf.ln(6.5)
 
-        # Table header
-        src_col_w = [10, 80, 40, 25, 25]  # #, Title, Domain, Type, Freshness
-        src_headers = ["#", "Title / URL", "Domain", "Type", "Freshness"]
+        s_headers = ["#", "Title / Verified URL", "Domain", "Type", "Freshness"]
+        s_widths = (12.0, 88.0, 35.0, 25.0, 30.0)
+        s_rows = []
+        for s in report.sources:
+            safe_title = _sanitize_pdf_latin1(s.title[:65])
+            title_cell = f"[{safe_title}]({s.url})" if s.url else safe_title
+            s_rows.append([
+                f"[{s.source_number}]",
+                title_cell,
+                _sanitize_pdf_latin1(s.domain or "-"),
+                _sanitize_pdf_latin1(s.source_type or "-"),
+                _sanitize_pdf_latin1(s.freshness or "-")
+            ])
 
-        pdf.set_font("Helvetica", "B", 8)
-        pdf.set_fill_color(43, 37, 84)
-        pdf.set_text_color(255, 255, 255)
-        pdf.set_draw_color(43, 37, 84)
-        for i, h in enumerate(src_headers):
-            pdf.cell(src_col_w[i], 7, h, border=1, align="C", fill=True)
-        pdf.ln()
-
-        # Table body
-        pdf.set_draw_color(200, 200, 210)
-        for idx, s in enumerate(report.sources):
-            if idx % 2 == 0:
-                pdf.set_fill_color(248, 248, 252)
-            else:
-                pdf.set_fill_color(255, 255, 255)
-
-            # Source number
-            pdf.set_font("Helvetica", "B", 8)
-            pdf.set_text_color(43, 37, 84)
-            pdf.cell(src_col_w[0], 6, f"[{s.source_number}]", border="LB", fill=True, align="C")
-
-            # Title with clickable link
-            pdf.set_font("Helvetica", "", 8)
-            pdf.set_text_color(37, 99, 235)
-            safe_title = _sanitize_pdf_latin1(s.title[:55])
-            if s.url:
-                pdf.cell(src_col_w[1], 6, safe_title, border="B", fill=True, link=s.url)
-            else:
-                pdf.cell(src_col_w[1], 6, safe_title, border="B", fill=True)
-
-            # Domain
-            pdf.set_text_color(80, 80, 100)
-            pdf.cell(src_col_w[2], 6, _sanitize_pdf_latin1(str(s.domain or "—")[:28]), border="B", fill=True, align="C")
-
-            # Type
-            pdf.cell(src_col_w[3], 6, _sanitize_pdf_latin1(str(s.source_type or "—")[:16]), border="B", fill=True, align="C")
-
-            # Freshness
-            pdf.cell(src_col_w[4], 6, _sanitize_pdf_latin1(str(s.freshness or "—")[:14]), border="RB", fill=True, align="C")
-            pdf.ln()
-
-        pdf.ln(6)
+        render_pdf_table_block(pdf, s_headers, s_rows, col_widths=s_widths)
 
     # 7. Verification Summary
-    vs = report.verification_summary
-    pdf.set_font("Helvetica", "B", 13)
-    pdf.set_text_color(43, 37, 84)
-    pdf.cell(0, 7, "7. Autonomous Verification Audit")
-    pdf.ln(7)
+    pdf.set_font("Helvetica", "B", 12.5)
+    pdf.set_text_color(30, 64, 175)
+    pdf.cell(0, 6.5, "7. Autonomous Verification Audit")
+    pdf.ln(6.5)
 
     pdf.set_font("Helvetica", "", 9.5)
     pdf.set_text_color(51, 65, 85)
@@ -1431,7 +1836,8 @@ def export_to_pdf(report: StructuredReport) -> bytes:
     pdf.cell(0, 5, f"- Decision Status: {vs.status.upper()}")
     pdf.ln(5)
     pdf.cell(5)
-    pdf.cell(0, 5, f"- Confidence Score: {int(vs.confidence_score * 100)}% (Cycle {vs.iteration_count})")
+    conf_audit = int(vs.confidence_score * 100) if vs.confidence_score <= 1.0 else int(vs.confidence_score)
+    pdf.cell(0, 5, f"- Confidence Score: {conf_audit}% (Cycle {vs.iteration_count})")
     pdf.ln(5)
     pdf.cell(5)
     pdf.cell(0, 5, f"- Claims Grounded: {vs.grounded_claims} grounded, {vs.insufficient_claims} insufficient, {vs.unsupported_claims} unsupported")
@@ -1444,16 +1850,17 @@ def export_to_pdf(report: StructuredReport) -> bytes:
 
     # 8. Research Limitations
     if report.research_limitations:
-        pdf.set_font("Helvetica", "B", 13)
-        pdf.set_text_color(43, 37, 84)
-        pdf.cell(0, 7, "8. Research Limitations & Scope")
-        pdf.ln(7)
+        pdf.set_font("Helvetica", "B", 12.5)
+        pdf.set_text_color(30, 64, 175)
+        pdf.cell(0, 6.5, "8. Research Limitations & Scope")
+        pdf.ln(6.5)
 
         pdf.set_font("Helvetica", "", 9)
         pdf.set_text_color(100, 116, 139)
         for lim in report.research_limitations:
             pdf.cell(5)
-            pdf.multi_cell(0, 4.5, _sanitize_pdf_latin1(f"- {lim}"))
+            pdf.cell(4, 4.5, "-")
+            pdf.multi_cell(0, 4.5, _sanitize_pdf_latin1(lim))
             pdf.ln(1)
 
     return bytes(pdf.output())

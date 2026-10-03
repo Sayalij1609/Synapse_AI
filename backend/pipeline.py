@@ -745,6 +745,7 @@ def writer_node(state: ResearchState) -> Dict[str, Any]:
 
     return {
         "report": grounded_report.markdown_report,
+        "conclusion": conclusion,
         "claims": [c.model_dump() for c in grounded_report.claims],
         "sources": {sid: s.model_dump() for sid, s in sources.items()},
         "grounded_claims": [c.model_dump() for c in grounded_report.grounded_claims],

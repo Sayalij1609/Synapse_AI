@@ -26,6 +26,7 @@ class ResearchState(TypedDict, total=False):
     unsupported_claims: List[Dict[str, Any]]
     citation_trace: Dict[str, Any]
     report: str
+    conclusion: str
     feedback: str
     source_quality_profiles: List[Dict[str, Any]]
     verification_iteration: int

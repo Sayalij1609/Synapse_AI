@@ -5,11 +5,16 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
-# Ensure current directory is on python path
+# Ensure project root and backend directory are on python path
 sys.path.insert(0, os.path.abspath("."))
+sys.path.insert(0, os.path.abspath("backend"))
 
-from db.models import Base
-from db.session import get_database_url, engine
+try:
+    from db.models import Base
+    from db.session import get_database_url, engine
+except ImportError:
+    from backend.db.models import Base
+    from backend.db.session import get_database_url, engine
 
 config = context.config
 

@@ -28,7 +28,8 @@ if not logger.handlers:
 # -----------------------------
 # Configuration
 # -----------------------------
-CHROMA_PERSIST_DIR = os.getenv("CHROMA_PERSIST_DIR", os.path.join(os.path.dirname(__file__), "chroma_db"))
+_retrieval_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) if os.path.exists(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "requirements.txt")) else os.path.dirname(os.path.abspath(__file__))
+CHROMA_PERSIST_DIR = os.getenv("CHROMA_PERSIST_DIR", os.path.join(_retrieval_root, "chroma_db"))
 EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME", "all-MiniLM-L6-v2")
 DEFAULT_TOP_K = int(os.getenv("RETRIEVAL_TOP_K", "16"))
 CHUNK_SIZE = int(os.getenv("EVIDENCE_CHUNK_SIZE", "800"))
