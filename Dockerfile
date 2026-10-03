@@ -47,29 +47,14 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Copy database migration files and configuration
+# Copy database migration configuration and root entrypoints
 COPY --chown=appuser:appgroup alembic.ini .
 COPY --chown=appuser:appgroup alembic/ ./alembic/
-COPY --chown=appuser:appgroup db/ ./db/
 COPY --chown=appuser:appgroup migrate.py .
-
-# Copy application source code
-COPY --chown=appuser:appgroup agents.py .
 COPY --chown=appuser:appgroup app.py .
-COPY --chown=appuser:appgroup auth.py .
-COPY --chown=appuser:appgroup citations.py .
-COPY --chown=appuser:appgroup pipeline.py .
-COPY --chown=appuser:appgroup planner.py .
-COPY --chown=appuser:appgroup report_export.py .
-COPY --chown=appuser:appgroup resilience.py .
-COPY --chown=appuser:appgroup retrieval.py .
-COPY --chown=appuser:appgroup source_quality.py .
-COPY --chown=appuser:appgroup state.py .
-COPY --chown=appuser:appgroup structured_logger.py .
-COPY --chown=appuser:appgroup subtask.py .
-COPY --chown=appuser:appgroup telemetry.py .
-COPY --chown=appuser:appgroup tools.py .
-COPY --chown=appuser:appgroup verification.py .
+
+# Copy modular backend application
+COPY --chown=appuser:appgroup backend/ ./backend/
 
 # Copy compiled React production build from Stage 1
 COPY --from=frontend-builder --chown=appuser:appgroup /app/frontend/dist ./frontend/dist

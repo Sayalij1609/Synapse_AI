@@ -32,3 +32,8 @@ synapse.db
 # Environment
 .env
 .env.local
+
+# Scratch and test artifacts
+scratch/
+eval_results/
+
