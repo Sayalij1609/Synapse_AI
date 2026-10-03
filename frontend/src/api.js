@@ -34,6 +34,23 @@ export function getAuthHeaders(extraHeaders = {}) {
   };
 }
 
+async function parseJsonResponse(res, fallbackError = 'Request failed') {
+  const text = await res.text();
+  let data = null;
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    if (!res.ok) {
+      throw new Error(`${fallbackError} (${res.status} ${res.statusText || 'Error'})`);
+    }
+    throw new Error('Server returned an unexpected non-JSON response');
+  }
+  if (!res.ok) {
+    throw new Error(data?.detail || data?.error || data?.message || `${fallbackError} (${res.status})`);
+  }
+  return data;
+}
+
 // ── Authentication API ───────────────────────────────────────
 
 export async function register(email, password, username = '', fullName = '') {
@@ -47,11 +64,8 @@ export async function register(email, password, username = '', fullName = '') {
       full_name: fullName || undefined,
     }),
   });
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.detail || 'Registration failed');
-  }
-  if (data.access_token) {
+  const data = await parseJsonResponse(res, 'Registration failed');
+  if (data?.access_token) {
     setToken(data.access_token);
   }
   return data;
@@ -63,11 +77,8 @@ export async function login(email, password) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
   });
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.detail || 'Invalid email or password');
-  }
-  if (data.access_token) {
+  const data = await parseJsonResponse(res, 'Invalid email or password');
+  if (data?.access_token) {
     setToken(data.access_token);
   }
   return data;
@@ -86,8 +97,8 @@ export async function fetchCurrentUser() {
       }
       return null;
     }
-    const data = await res.json();
-    return data.user || null;
+    const data = await parseJsonResponse(res, 'Failed to fetch user');
+    return data?.user || null;
   } catch {
     return null;
   }
@@ -112,16 +123,14 @@ export async function fetchHistory() {
   const res = await fetch(`${API_BASE}/history`, {
     headers: getAuthHeaders(),
   });
-  if (!res.ok) throw new Error('Failed to load history');
-  return res.json();
+  return parseJsonResponse(res, 'Failed to load history');
 }
 
 export async function fetchHistoryEntry(id) {
   const res = await fetch(`${API_BASE}/history/${id}`, {
     headers: getAuthHeaders(),
   });
-  if (!res.ok) throw new Error('Entry not found or access forbidden');
-  return res.json();
+  return parseJsonResponse(res, 'Entry not found or access forbidden');
 }
 
 export async function deleteHistoryEntry(id) {
@@ -129,8 +138,7 @@ export async function deleteHistoryEntry(id) {
     method: 'DELETE',
     headers: getAuthHeaders(),
   });
-  if (!res.ok) throw new Error('Delete failed or unauthorized');
-  return res.json();
+  return parseJsonResponse(res, 'Delete failed or unauthorized');
 }
 
 // ── Persistent Research Workspace Projects & Sessions ────────
@@ -139,11 +147,7 @@ export async function fetchProjects() {
   const res = await fetch(`${API_BASE}/projects`, {
     headers: getAuthHeaders(),
   });
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw new Error(data.detail || 'Failed to load projects');
-  }
-  return res.json();
+  return parseJsonResponse(res, 'Failed to load projects');
 }
 
 export async function createProject(title, description = '') {
@@ -152,18 +156,14 @@ export async function createProject(title, description = '') {
     headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({ title, description }),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.detail || 'Failed to create project');
-  return data;
+  return parseJsonResponse(res, 'Failed to create project');
 }
 
 export async function fetchProject(projectId) {
   const res = await fetch(`${API_BASE}/projects/${projectId}`, {
     headers: getAuthHeaders(),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.detail || 'Project not found');
-  return data;
+  return parseJsonResponse(res, 'Project not found');
 }
 
 export async function deleteProject(projectId) {
@@ -171,18 +171,14 @@ export async function deleteProject(projectId) {
     method: 'DELETE',
     headers: getAuthHeaders(),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.detail || 'Failed to delete project');
-  return data;
+  return parseJsonResponse(res, 'Failed to delete project');
 }
 
 export async function fetchProjectSessions(projectId) {
   const res = await fetch(`${API_BASE}/projects/${projectId}/sessions`, {
     headers: getAuthHeaders(),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.detail || 'Failed to load project sessions');
-  return data;
+  return parseJsonResponse(res, 'Failed to load project sessions');
 }
 
 export async function createProjectSession(projectId, topic, sessionName = '') {
@@ -191,18 +187,14 @@ export async function createProjectSession(projectId, topic, sessionName = '') {
     headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({ topic, session_name: sessionName }),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.detail || 'Failed to create project session');
-  return data;
+  return parseJsonResponse(res, 'Failed to create project session');
 }
 
 export async function fetchSessionDetails(sessionId) {
   const res = await fetch(`${API_BASE}/sessions/${sessionId}`, {
     headers: getAuthHeaders(),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.detail || 'Session not found');
-  return data;
+  return parseJsonResponse(res, 'Session not found');
 }
 
 export async function deleteSession(sessionId) {
@@ -210,18 +202,14 @@ export async function deleteSession(sessionId) {
     method: 'DELETE',
     headers: getAuthHeaders(),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.detail || 'Failed to delete session');
-  return data;
+  return parseJsonResponse(res, 'Failed to delete session');
 }
 
 export async function fetchSessionReports(sessionId) {
   const res = await fetch(`${API_BASE}/sessions/${sessionId}/reports`, {
     headers: getAuthHeaders(),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.detail || 'Failed to load reports');
-  return data;
+  return parseJsonResponse(res, 'Failed to load reports');
 }
 
 export async function fetchSessionTelemetry(sessionId) {
@@ -308,8 +296,7 @@ export async function fetchStructuredReport(sessionId) {
   const res = await fetch(`${API_BASE}/sessions/${sessionId}/structured-report`, {
     headers: getAuthHeaders(),
   });
-  if (!res.ok) throw new Error('Failed to fetch structured report');
-  return await res.json();
+  return parseJsonResponse(res, 'Failed to fetch structured report');
 }
 
 export async function fetchSessionDossier(sessionId) {

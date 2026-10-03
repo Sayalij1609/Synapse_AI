@@ -11,6 +11,8 @@ export default defineConfig({
       '/health': 'http://127.0.0.1:8000',
       '/ready': 'http://127.0.0.1:8000',
       '/history': 'http://127.0.0.1:8000',
+      '/projects': 'http://127.0.0.1:8000',
+      '/sessions': 'http://127.0.0.1:8000',
       '/export': 'http://127.0.0.1:8000',
       '/download-pdf': 'http://127.0.0.1:8000',
       '/download-docx': 'http://127.0.0.1:8000',
