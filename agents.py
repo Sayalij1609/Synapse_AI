@@ -30,9 +30,9 @@ load_dotenv()
 GROQ_MODEL = os.getenv("GROQ_MODEL", "qwen/qwen3.8-27b")
 GROQ_FALLBACK_MODEL = os.getenv("GROQ_FALLBACK_MODEL", "openai/gpt-oss-120b")
 GROQ_MAX_TOKENS = int(os.getenv("GROQ_MAX_TOKENS", "750"))
-GROQ_WRITER_MAX_TOKENS = int(os.getenv("GROQ_WRITER_MAX_TOKENS", "2800"))
+GROQ_WRITER_MAX_TOKENS = int(os.getenv("GROQ_WRITER_MAX_TOKENS", "8192"))
 GROQ_CRITIC_MAX_TOKENS = int(os.getenv("GROQ_CRITIC_MAX_TOKENS", "1024"))
-LLM_TIMEOUT_SECONDS = float(os.getenv("LLM_TIMEOUT_SECONDS", "90.0"))
+LLM_TIMEOUT_SECONDS = float(os.getenv("LLM_TIMEOUT_SECONDS", "120.0"))
 
 # Primary dedicated LLM instances
 query_llm = ChatGroq(model=GROQ_MODEL, temperature=0, max_tokens=100, max_retries=2)
@@ -223,30 +223,64 @@ def build_reader_agent():
 writer_prompt = ChatPromptTemplate.from_messages([
     (
         "system",
-        """You are an elite research analyst. Synthesize evidence into a grounded research report as JSON.
+        """You are a Principal Research Scientist and Senior Intelligence Analyst.
+Synthesize the provided empirical research evidence into an exhaustive, publication-grade, deeply detailed research report.
+Your output must be structured as valid JSON adhering strictly to the schema below.
 
-RULES:
-- NEVER copy raw/scraped text verbatim. ALWAYS synthesize into polished analytical prose.
-- NEVER include website boilerplate (Wikipedia headers, copyright, cookie text, navigation).
-- SKIP truncated fragments starting with lowercase word parts (e.g., "bility of", "tered the").
-- Cite sources as [Source N]. Include concrete metrics, dates, and percentages.
-- Write in professional third-person analytical tone.
+CORE DIRECTIVES FOR DEPTH AND SUBSTANCE:
+1. MAXIMIZE CONTENT VOLUME AND ANALYTICAL DEPTH: Provide exhaustive, deeply analyzed, information-dense content. Avoid brief summaries or superficial overviews. Write thoroughly and comprehensively in every section.
+2. EVIDENCE GROUNDING & DENSE CITATION: Every factual claim, statistic, date, percentage, metric, and finding MUST be rigorously cited using [Source N] format. Corroborate across multiple sources where available (e.g., [Source 1, Source 3]).
+3. PROFESSIONAL THIRD-PERSON SCHOLARLY TONE: Maintain an objective, rigorous, analytical voice suitable for executive stakeholders and scientific peer review.
+4. ZERO FABRICATION: Anchor all assertions strictly in the provided Evidence Catalog. Synthesize and interpret the evidence deeply without inventing outside facts.
+5. NO VERBATIM BOILERPLATE: Never copy raw text fragments or web boilerplate (cookie policies, navigation, copyright notices). Fully synthesize facts into polished analytical prose.
 
-OUTPUT FORMAT — Pure JSON with these keys:
+OUTPUT FORMAT — Pure JSON adhering strictly to this schema:
 {{
-  "summary": "Executive summary (3-5 sentences with key findings and data)",
-  "research_objectives": ["4-6 specific research questions investigated"],
-  "background_context": "2-3 paragraphs: historical context, current state, significance. Cite [Source N].",
-  "key_findings": [{{"headline": "Short Title (4-8 words)", "takeaway": "2-3 sentence finding with data and [Source N]"}}],
-  "claims": [{{"claim_id": "claim_1", "headline": "Claim title", "text": "Factual statement with data", "supporting_source_ids": ["1"], "evidence_chunk_ids": ["chunk_1"], "confidence": 0.95}}],
-  "thematic_analysis": [{{"heading": "Section Title", "content": "2-3 analytical paragraphs with [Source N] citations"}}],
-  "comparative_data": [{{"category": "Comparison", "entries": [{{"name": "A", "metric": "value"}}]}}],
-  "challenges": "1-2 paragraphs on challenges, bottlenecks, open questions with [Source N]",
-  "conclusion": "Strategic outlook (3-5 sentences): synthesis, implications, recommendations",
-  "limitations": ["2-3 methodology notes"]
+  "summary": "Exhaustive executive briefing consisting of 3 to 5 substantial, information-dense paragraphs (400-600 words total). Thoroughly synthesize the macro landscape, pivotal breakthroughs, empirical milestones, quantitative metrics, and overarching strategic significance. Cite [Source N] consistently throughout.",
+  "research_objectives": [
+    "6 to 8 granular, methodologically rigorous research questions and empirical hypotheses investigated throughout this inquiry."
+  ],
+  "background_context": "Comprehensive historical, technical, and industry context spanning 4 to 6 substantial paragraphs (500-800 words). Trace the historical origins, theoretical foundation, technological lineage, regulatory trajectory, and foundational milestones that led to the current state-of-the-art. Extensively cite [Source N].",
+  "key_findings": [
+    {{
+      "headline": "Descriptive, Authoritative Headline (5-10 words)",
+      "takeaway": "Substantial, detailed analytical takeaway of 3 to 5 sentences packed with specific empirical metrics, percentages, trial numbers, comparative baselines, and inline [Source N] citations."
+    }}
+  ],
+  "thematic_analysis": [
+    {{
+      "heading": "Thematic Dimension Title (e.g., Architectural Mechanics, Clinical Efficacy, Economic Scalability)",
+      "content": "Deep, exhaustive investigation consisting of 3 to 5 dense, multi-sentence paragraphs (400-600 words per theme) exploring the core mechanisms, trade-offs, empirical evidence, edge cases, implementation realities, and domain implications. Extensively grounded with [Source N] citations throughout."
+    }}
+  ],
+  "comparative_data": [
+    {{
+      "category": "Comprehensive Comparative Matrix (e.g., Performance Benchmarks, Modality Trade-offs, Institutional Approaches)",
+      "entries": [
+        {{"modality_or_system": "System A", "efficiency_metric": "Value A", "safety_profile": "Value B", "cost_or_latency": "Value C", "maturity_level": "Value D"}},
+        {{"modality_or_system": "System B", "efficiency_metric": "Value E", "safety_profile": "Value F", "cost_or_latency": "Value G", "maturity_level": "Value H"}}
+      ]
+    }}
+  ],
+  "challenges": "Exhaustive critical analysis spanning 3 to 5 comprehensive paragraphs (400-600 words) dissecting technical roadblocks, architectural vulnerabilities, scalability limits, regulatory friction, security/ethical risks, and critical open research questions. Cite [Source N].",
+  "conclusion": "Forward-looking strategic synthesis spanning 4 to 5 detailed paragraphs (400-600 words). Synthesize cross-cutting implications, long-term industry impact, 2026-2030 technology roadmap projections, and actionable, prioritized strategic recommendations for decision-makers.",
+  "limitations": [
+    "4 to 6 detailed methodological observations detailing evidence sample constraints, geographic/domain coverage boundaries, temporal validity, and areas requiring ongoing empirical surveillance."
+  ],
+  "claims": [
+    {{
+      "claim_id": "claim_1",
+      "headline": "Specific Factual Claim Headline",
+      "text": "Precise, verified empirical assertion containing quantifiable facts, metrics, or validated outcomes.",
+      "supporting_source_ids": ["1"],
+      "evidence_chunk_ids": ["c1"],
+      "confidence": 0.95
+    }}
+  ]
 }}
 
-Output ONLY valid JSON. No text outside the JSON block."""
+Provide at least 8 to 12 Key Findings, at least 4 to 6 Thematic Analysis sections, at least 2 Comparative Data tables, and at least 8 to 12 Granular Claims.
+Output ONLY valid JSON. No conversational commentary, no markdown code block wrappers (no ```json or ```), and no text outside the JSON object."""
     ),
     (
         "human",
@@ -254,7 +288,7 @@ Output ONLY valid JSON. No text outside the JSON block."""
 
 {research}
 
-Generate the research report JSON:"""
+Generate the exhaustive, deeply detailed research report JSON:"""
     )
 ])
 

@@ -312,16 +312,16 @@ def format_evidence_catalog_for_writer(
     Format a structured evidence catalog for the Writer LLM.
     Strictly budgeted to stay comfortably within Groq ITPM token limits (~1000 tokens):
     - Max 8 sources, max 2 chunks per source
-    - Each chunk excerpt truncated to 250 chars
-    - Total catalog text capped at 3500 characters
+    - Each chunk excerpt up to 1200 chars
+    - Total catalog text capped at 28000 characters
     """
     if not sources:
         return "No verified sources available in evidence store."
 
-    MAX_SOURCES = 8
-    MAX_CHUNKS_PER_SOURCE = 2
-    MAX_EXCERPT_CHARS = 250
-    MAX_TOTAL_CHARS = 3500
+    MAX_SOURCES = 25
+    MAX_CHUNKS_PER_SOURCE = 6
+    MAX_EXCERPT_CHARS = 1200
+    MAX_TOTAL_CHARS = 28000
 
     lines = [
         "=== EVIDENCE CATALOG (CITE USING [Source N]) ===",
@@ -688,7 +688,14 @@ def _sanitize_report_text(text: str, fallback_topic: str) -> str:
 
     # Remove non-printable characters (binary corruption)
     cleaned = ''.join(ch for ch in cleaned if ch.isprintable() or ch in '\n\r\t ')
-    cleaned = re.sub(r'\s+', ' ', cleaned).strip()
+
+    # Preserve paragraph breaks (\n\n) while cleaning irregular spaces
+    paragraphs = []
+    for raw_p in cleaned.split("\n"):
+        p = re.sub(r"[ \t]+", " ", raw_p).strip()
+        if p:
+            paragraphs.append(p)
+    cleaned = "\n\n".join(paragraphs)
 
     if len(cleaned) < 20:
         return f"This report synthesizes verified empirical research on {fallback_topic}."
@@ -834,11 +841,17 @@ def assemble_grounded_report(
 
     if thematic_analysis:
         for idx, sec in enumerate(thematic_analysis, 1):
-            heading = sec.get("heading", f"Thematic Investigation {idx}").strip()
+            heading = sec.get("heading", f"Thematic Dimension {idx}").strip()
             heading_clean = re.sub(r'^\d+[\.)\]]\s*', '', heading)
             content = sec.get("content", "").strip()
+            content_paragraphs = []
+            for raw_p in content.split("\n"):
+                p = re.sub(r"[ \t]+", " ", raw_p).strip()
+                if p:
+                    content_paragraphs.append(p)
+            cleaned_content = "\n\n".join(content_paragraphs) if content_paragraphs else content
             report_sections.append(f"### {heading_clean}\n")
-            report_sections.append(f"{content}\n")
+            report_sections.append(f"{cleaned_content}\n")
     elif claims:
         for idx, c in enumerate(claims, 1):
             claim_text = c.text.strip()

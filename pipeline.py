@@ -414,11 +414,11 @@ def evidence_collection_node(state: ResearchState) -> Dict[str, Any]:
         # 2. Targeted semantic retrieval per subtask question
         if plan and isinstance(plan, dict):
             sub_questions = plan.get("sub_questions", [])
-            for sq in sub_questions[:4]:
+            for sq in sub_questions[:6]:
                 sq_results = retrieval_service.retrieve_evidence(
                     query=sq,
                     session_id=session_id,
-                    top_k=2
+                    top_k=4
                 )
                 for ev in sq_results:
                     if ev.chunk_id not in seen_chunk_ids:
