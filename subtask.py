@@ -242,8 +242,9 @@ def execute_subtask(
                     extracted.append(doc)
                     scrape_successful = True
                     logger.info("Subtask [%s] successfully extracted document from %s (%d chars)", subtask.subtask_id, cand.url, len(content_or_err))
-                    # Successfully acquired document for this subtask; break out
-                    break
+                    # Extract up to 2 documents per subtask if time permits
+                    if len(extracted) >= 2 or (time.time() - start_time) > (timeout * 0.75):
+                        break
                 else:
                     # Record failed source transparently
                     fail_rec = {

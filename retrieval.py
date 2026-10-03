@@ -30,9 +30,9 @@ if not logger.handlers:
 # -----------------------------
 CHROMA_PERSIST_DIR = os.getenv("CHROMA_PERSIST_DIR", os.path.join(os.path.dirname(__file__), "chroma_db"))
 EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME", "all-MiniLM-L6-v2")
-DEFAULT_TOP_K = int(os.getenv("RETRIEVAL_TOP_K", "6"))
-CHUNK_SIZE = int(os.getenv("EVIDENCE_CHUNK_SIZE", "600"))
-CHUNK_OVERLAP = int(os.getenv("EVIDENCE_CHUNK_OVERLAP", "100"))
+DEFAULT_TOP_K = int(os.getenv("RETRIEVAL_TOP_K", "16"))
+CHUNK_SIZE = int(os.getenv("EVIDENCE_CHUNK_SIZE", "800"))
+CHUNK_OVERLAP = int(os.getenv("EVIDENCE_CHUNK_OVERLAP", "150"))
 COLLECTION_NAME = "synapse_evidence_chunks"
 
 
